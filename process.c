@@ -31,6 +31,7 @@ void 	printFlashTest(void);
 void 	ShortCircuitProtection(void);
 void 	WriteFlash(uint32_t addr,uint32_t data);
 extern void DelaymsSet(int16_t ms);
+void SET_GOODBAD(void);
 /*------------------------------------全局变量---------------------------------------*/
 uint32_t ADC_value = 0;
 uint8_t 	ShortCircuit=0;
@@ -55,7 +56,8 @@ uint8_t OUT;
 
 PWM_Number CurrentPWM = PWMX; //默认当前PWM通道为X
 uint32_t S_Last,S_Current,S_History,S_FINAL;
-int CurrentThreshold=500;
+int CICurrentThreshold=500;
+int MAKCurrentThreshold=500;
 int CurrentDifference = Default_Difference;//默认应差值
 
 uint32_t RegisterACounter=0;
@@ -131,20 +133,17 @@ void DataProcess(void)
 //				}
 //		}
 		
-		if(KeyIndex<1)   /*小于1则，KeyIndex =0 没按键响应，当KeyIndex>=1时，则按键过SET按键*/
+		//if(KeyIndex<1)   /*小于1则，KeyIndex =0 没按键响应，当KeyIndex>=1时，则按键过SET按键*/
 		{
-			//RegisterB = Read_GOODBAD();
 			/*根据FB电平高低判断RegisterA*/
 			if(FB_Flag ==1)
 				CI_GetRegisterAState();
 			else if(FB_Flag==0)
 				MARK_GetRegisterAState();
-			/*同或运算*/
-			//OUT=RegisterA;
-			/*输出OUT*/
+			
 			SetOut(RegisterA);
 		}
-		
+	
 		/*按键进入自学习模式*/
 		if(KeyTime>0)  
 		{
@@ -162,6 +161,8 @@ void DataProcess(void)
 				MARK_Mode_SelfLearning();//MARK MODE
 			}
 		}
+		/*Good Bad*/
+		SET_GOODBAD();
 	}
 }
 
@@ -176,26 +177,24 @@ void CI_PWM_OUT(void)
 {
 	TIM_SetCounter(MainTIMER,0X00);
 	
-	PWM1_ON;
-	
+	PWM1_ON;	
 	/*PWMX的ADC开始*/
 	PWMX_ON;
-	while(TIM_GetCounter(MainTIMER)<1);// 拉高PWMX 1us
+	while(TIM_GetCounter(MainTIMER)<PWMx_HIGH);// 拉高PWMX 1us
 	PWMX_OFF;
 	ADC_StartOfConversion(ADC1);
 	while(ADC_Conversion_Flag==0);  //等待PWMX的ADC采集完成
 	ADC_Conversion_Flag = 0;
 	/*PWMX的ADC完成*/
-	//while(TIM_GetCounter(MainTIMER)<=8);
 	PWMY_ON;
-	while(TIM_GetCounter(MainTIMER)<2);// 拉高PWMX 1us
+	while(TIM_GetCounter(MainTIMER)<PWMy_HIGH);// 拉高PWMX 1us
 	PWMY_OFF;
 	ADC_StartOfConversion(ADC1);
 	while(ADC_Conversion_Flag==0);  //等待PWMX的ADC采集完成
 	ADC_Conversion_Flag = 0;
 	/*PWMY的ADC完成*/
 	PWMZ_ON;
-	while(TIM_GetCounter(MainTIMER)<3);// 拉高PWMX 1us
+	while(TIM_GetCounter(MainTIMER)<PWMz_HIGH);// 拉高PWMX 1us
 	PWMZ_OFF;
 	ADC_StartOfConversion(ADC1);
 	while(ADC_Conversion_Flag==0);  //等待PWMX的ADC采集完成
@@ -211,27 +210,29 @@ void CI_PWM_OUT(void)
 **********************/
 extern int16_t  RunTime; 
 extern uint8_t ADCIndex;
-uint8_t PWMx_y_z_Counter = 0;
-uint8_t PWMx_y_z_TotalCounter = 0;
+uint8_t CI_PWMx_y_z_Counter = 0;
+uint8_t CI_PWMx_y_z_TotalCounter = 0;
+
+
 void CI_GetRegisterAState(void)
 {
 	CI_PWM_OUT();
 	 
-	SX[PWMx_y_z_TotalCounter] = selfADCValue[PWMx_y_z_Counter++];
-	SY[PWMx_y_z_TotalCounter] = selfADCValue[PWMx_y_z_Counter++];
-	SZ[PWMx_y_z_TotalCounter] = selfADCValue[PWMx_y_z_Counter++];
-	PWMx_y_z_TotalCounter++;
-	if(PWMx_y_z_TotalCounter<4)
+	SX[CI_PWMx_y_z_TotalCounter] = selfADCValue[CI_PWMx_y_z_Counter++];
+	SY[CI_PWMx_y_z_TotalCounter] = selfADCValue[CI_PWMx_y_z_Counter++];
+	SZ[CI_PWMx_y_z_TotalCounter] = selfADCValue[CI_PWMx_y_z_Counter++];
+	CI_PWMx_y_z_TotalCounter++;
+	if(CI_PWMx_y_z_TotalCounter<4)
 	{
 		//scan_key(); //按键扫面
-		while(TIM_GetCounter(MainTIMER)<120);//一组累加完成，等待
+		while(TIM_GetCounter(MainTIMER)<PWM1_HIGH);//一组累加完成，等待
 	}
-	else if(PWMx_y_z_TotalCounter>3)  //4组，12个数据完成
+	else if(CI_PWMx_y_z_TotalCounter>3)  //4组，12个数据完成
 		{
 			
 			ADCIndex = 0;
-			PWMx_y_z_TotalCounter = 0;
-			PWMx_y_z_Counter = 0;
+			CI_PWMx_y_z_TotalCounter = 0;
+			CI_PWMx_y_z_Counter = 0;
 			
 			SX_RUN = (SX[0]+SX[1]+SX[2]+SX[3])/4; //累加求平均
 			SY_RUN = (SY[0]+SY[1]+SY[2]+SY[3])/4;
@@ -288,8 +289,9 @@ void CI_GetRegisterAState(void)
 
 			/***********RegisterA***********/
 			
-			SCI_Max = CurrentThreshold + DX;
-			SCI_Min = CurrentThreshold-100-DX ; 
+			SCI_Max = CICurrentThreshold + DX/4;
+			SCI_Min = CICurrentThreshold - DX - 50; 
+			
 			if(SCI_Min<10)
 				 SCI_Min= 10;
 			
@@ -298,7 +300,7 @@ void CI_GetRegisterAState(void)
 			else if(SCI <= SCI_Min)
 				RegisterA = 0;
 			
-			while(TIM_GetCounter(MainTIMER)<120);//一组累加完成，等待
+			while(TIM_GetCounter(MainTIMER)<PWM1_HIGH);//一组累加完成，等待
 			
 			//RunTime = TIM_GetCounter(MainTIMER);
 		}
@@ -309,128 +311,111 @@ void CI_GetRegisterAState(void)
 *判断出MARK模式下RegisterA状态
 *
 **********************/
-void MARK_GetRegisterAState(void)
-{
-	uint8_t GetADCIndex=0,k;
-	
-	RegisterACounter++;// 用于记录次数
-	
-	if(RegisterACounter<=1) //如果当前是第一次计算RegisterA，则需要先获取一次Signal，才能做相减
-	{
-		S_Current = Read_Value(CurrentPWM);
-		//printf("第一次进入 registor A\r\n");
-		S_Last = S_Current;
-	}
-	
-	S_Current = Read_Value(CurrentPWM);
 
-	if(sample_finish) /*DMA中断中，ADC转换完成标记*/
-	{
-		if(FB_Flag)  /*CI MODE*/
-		{
-			for(GetADCIndex=0,k=0;k<4;k++)
-			{
-				SX[k] = selfADCValue[GetADCIndex++];
-				SY[k] = selfADCValue[GetADCIndex++];
-				SZ[k] = selfADCValue[GetADCIndex++];	
-			}
-			SX_RUN = (SX[0]+SX[1]+SX[2]+SX[3])/4; //累加求平均
-			SY_RUN = (SY[0]+SY[1]+SY[2]+SY[3])/4;
-			SZ_RUN = (SZ[0]+SZ[1]+SZ[2]+SZ[3])/4;
-		
-			S_RUN_TOTAL = SX_RUN+SY_RUN+SZ_RUN;
-			
-			CX = 1024*SX_RUN/S_RUN_TOTAL;   //1->SXA,2->SXB
-			CY = 1024*SY_RUN/S_RUN_TOTAL;   //1->SXA,2->SXB
-			CZ = 1024*SZ_RUN/S_RUN_TOTAL;   //1->SXA,2->SXB
-			
-			
-			if(S_RUN_TOTAL > SA_B[0])
-				NS_RUN = S_RUN_TOTAL - SA_B[0];  /*NSR_RUN = S-SA 绝对值*/
-			else
-				NS_RUN = SA_B[0] - S_RUN_TOTAL;
-			
-			if(CX > CXA_B[0])
-				CX_RUN =	CX - CXA_B[0];  /*CX_RUN=CX-CXB的绝对值*/
-			else
-				CX_RUN =	CXA_B[0] - CX;
-			
-			if(CY > CYA_B[0])
-				CY_RUN = 	CY - CYA_B[0];
-			else
-				CY_RUN = 	CYA_B[0] - CY;
-			
-			if(CZ > CZA_B[0])
-				CZ_RUN = 	CZ - CZA_B[0];
-			else
-				CZ_RUN = 	CZA_B[0] - CZ;
-			
-			NXYZ_RUN = CX_RUN+CY_RUN+CZ_RUN;
-			
-			SMARK = 1000 - (NS_RUN + NXYZ_RUN);
-			
-			if(SMARK<=0)
-				SMARK = 0;
-			else if(SMARK>=1000)
-				SMARK  = 1000;
-			
-		}		
-			//sample_finish = 0;
-	}
-	
-	if(S_FINAL>=CurrentThreshold)
-			RegisterA = 1;
-	else if(S_FINAL<=(CurrentThreshold - CurrentDifference))
-			RegisterA = 0;
-		
-}
+uint8_t MAK_PWMx_y_z_Counter = 0;
+uint8_t MAK_PWMx_y_z_TotalCounter = 0;
 
-/************************
-*
-*发出PWM1及所选的PWM通道，读回ADC值
-*
-*************************/
-uint32_t Read_Value(PWM_Number PWM)
+void MARK_PWM_OUT(PWM_Number PWM)
 {
 	/*开启对应的PWM通道*/
-	switch (PWM)
+
+	if(PWM ==  PWMX)
 	{
-	case PWMX:
-					PWMX_ON;
-					PWMY_OFF;
-					PWMZ_OFF;
-		break;
-	case PWMY:
+		TIM_SetCounter(MainTIMER,0X00);
+		PWM1_ON;	
+		PWMX_ON;
+		PWMY_OFF;
+		PWMZ_OFF;
+		/*PWMX的ADC开始*/
+		while(TIM_GetCounter(MainTIMER)<PWMx_HIGH);// 拉高PWMX 1us
+		PWMX_OFF;
+		ADC_StartOfConversion(ADC1);
+		while(ADC_Conversion_Flag==0);  //等待PWMX的ADC采集完成
+		ADC_Conversion_Flag = 0;
+		PWM1_OFF;	
+		SX[MAK_PWMx_y_z_TotalCounter] = selfADCValue[MAK_PWMx_y_z_Counter++];
+		MAK_PWMx_y_z_TotalCounter++;
+		if(MAK_PWMx_y_z_TotalCounter<4)
+		{
+			while(TIM_GetCounter(MainTIMER)<PWM1_HIGH);//一组累加完成，等待
+		}
+		else if(MAK_PWMx_y_z_TotalCounter>3)  //4组，12个数据完成
+		{
+			ADCIndex = 0;
+			MAK_PWMx_y_z_TotalCounter = 0;
+			MAK_PWMx_y_z_Counter = 0;
+			SMARK = (SX[0]+SX[1]+SX[2]+SX[3])/4; //累加求平均
+			if(SMARK<10)
+				SMARK= 10;	
+			if(SMARK > MAKCurrentThreshold+DX/4)
+			{
+				RegisterA = 1;
+			}
+			else if(SMARK < MAKCurrentThreshold- DX -50)
+			{
+				RegisterA = 0;
+			}
+		}
+	}
+		
+	else if(PWM == PWMY)
+	{
+					TIM_SetCounter(MainTIMER,0X00);
+					PWM1_ON;	
 					PWMX_OFF;
 					PWMY_ON;
 					PWMZ_OFF;
-		break;
-	case PWMZ:
+					/*PWMX的ADC开始*/
+					while(TIM_GetCounter(MainTIMER)<PWMx_HIGH);// 拉高PWMX 1us
+					PWMY_OFF;
+					ADC_StartOfConversion(ADC1);
+					while(ADC_Conversion_Flag==0);  //等待PWMX的ADC采集完成
+					ADC_Conversion_Flag = 0;
+					PWM1_OFF;	
+	
+	}
+	
+	else if(PWM ==  PWMZ)
+	{
+					TIM_SetCounter(MainTIMER,0X00);
+					PWM1_ON;	
 					PWMX_OFF;
 					PWMY_OFF;
 					PWMZ_ON;
-		break;
-	default:break;
+					/*PWMX的ADC开始*/
+					while(TIM_GetCounter(MainTIMER)<PWMx_HIGH);// 拉高PWMX 1us
+					PWMZ_OFF;
+					ADC_StartOfConversion(ADC1);
+					while(ADC_Conversion_Flag==0);  //等待PWMX的ADC采集完成
+					ADC_Conversion_Flag = 0;
+					PWM1_OFF;	
+	
 	}
-	return ADC_value;
+	
 }
+
+
+void MARK_GetRegisterAState(void)
+{
+		MARK_PWM_OUT(CurrentPWM);
+}
+
 
 /***************************************
 *
 *读取KG拨码开关的值
 *
 **************************************/
-uint8_t  Read_GOODBAD(void)
+void  SET_GOODBAD(void)
 {
-	
 	uint8_t  GOODBAD_STATE;
 	
-	GOODBAD_STATE = GPIO_ReadInputDataBit(GOODBAD_GPIO_Port,GOODBAD_Pin); //读取KG的值
-	
-	if(GOODBAD_STATE ==Bit_SET)
-		return 1;
-	else
-		return 0;
+	if(SA_B[0]>=300)
+		GPIO_WriteBit(GOODBAD_GPIO_Port,GOODBAD_Pin,Bit_SET); //读取KG的值
+	else if(SA_B[0]<300)
+	{
+		GPIO_WriteBit(GOODBAD_GPIO_Port, GOODBAD_Pin, (BitAction)!GPIO_ReadOutputDataBit(GOODBAD_GPIO_Port, GOODBAD_Pin));
+	}
 }
 
 /***************************************
@@ -530,23 +515,23 @@ void  MARK_Mode_SelfLearning(void)
 					FLASHData = 0x00000000;
 					if(BIG==X)
 					{
-						CurrentThreshold = (SXA_B[1] + SXA_B[0])/2;
+						MAKCurrentThreshold = (SXA_B[1] + SXA_B[0])/2;
 						CurrentPWM = PWMX;
-						FLASHData = FLASHData+CurrentThreshold+0x10000000;
+						FLASHData = FLASHData+MAKCurrentThreshold+0x10000000;
 						//printf("CurrentPWM = PWMX,CurrentThreshold:%d\r\n",CurrentThreshold);
 					}
 					else if(BIG==Y)
 					{
-						CurrentThreshold = (SYA_B[1] + SYA_B[0])/2;
+						MAKCurrentThreshold = (SYA_B[1] + SYA_B[0])/2;
 						CurrentPWM = PWMY;
-						FLASHData = FLASHData+CurrentThreshold+0x20000000;
+						FLASHData = FLASHData+MAKCurrentThreshold+0x20000000;
 						//printf("CurrentPWM = PWMY,CurrentThreshold:%d\r\n",CurrentThreshold);
 					}
 					else	
 					{
-						CurrentThreshold = (SZA_B[1] + SZA_B[0])/2;
+						MAKCurrentThreshold = (SZA_B[1] + SZA_B[0])/2;
 						CurrentPWM = PWMZ;
-						FLASHData = FLASHData+CurrentThreshold+0x40000000;
+						FLASHData = FLASHData+MAKCurrentThreshold+0x40000000;
 						//printf("CurrentPWM = PWMZ,CurrentThreshold:%d\r\n",CurrentThreshold);
 					}	
 					WriteFlash(0,FLASHData);																	//保存FLASH
@@ -593,7 +578,6 @@ void CI_Mode_SelfLearning(void)
 		
 			if(KeyIndex>=2) //第二次按键   //
 			{
-			//printf("second enter ,key time:%d\r\n",KeyTime);
 				KeyIndex = 0;
 				
 				if(CXA_B[1]>CXA_B[0])
@@ -618,15 +602,13 @@ void CI_Mode_SelfLearning(void)
 				
 				NXYZ_SET = NXSET+NYSET+NZSET;
 				
-				CurrentThreshold = 1000 - (NS_SET + NXYZ_SET)/2;
+				CICurrentThreshold = 1000 - (NS_SET + NXYZ_SET)/2;
 				
-			if(CurrentThreshold<=200)
-					CurrentThreshold = 200;
-			else if(CurrentThreshold>=1000)
-				CurrentThreshold = 1000;
-//				WriteFlash(0,FLASHData);																	//保存FLASH
-//					//printf("Save Successfully\r\n");
-//				EnterSelfFlag = 0;
+			if(CICurrentThreshold<=200)
+					CICurrentThreshold = 200;
+			else if(CICurrentThreshold>=1000)
+				CICurrentThreshold = 1000;
+
 			}
 			KeyTime = 0; //清楚按键标记
 }
@@ -661,15 +643,15 @@ void scan_key(void)
 			
 }
 
-void WriteFlash(uint32_t addr,uint32_t data)
-{
-FLASH_Unlock(); //解锁FLASH编程擦除控制器
-FLASH_ClearFlag(FLASH_FLAG_BSY|FLASH_FLAG_EOP|FLASH_FLAG_PGERR|FLASH_FLAG_WRPERR);//清除标志位
-FLASH_ErasePage(FLASH_START_ADDR); //擦除指定地址页
-FLASH_ProgramWord(FLASH_START_ADDR+(addr*4),data); //从指定页的0地址开始写
-FLASH_ClearFlag(FLASH_FLAG_BSY|FLASH_FLAG_EOP|FLASH_FLAG_PGERR|FLASH_FLAG_WRPERR);//清除标志位
-FLASH_Lock(); //锁定FLASH编程擦除控制器
-}
+//void WriteFlash(uint32_t addr,uint32_t data)
+//{
+//FLASH_Unlock(); //解锁FLASH编程擦除控制器
+//FLASH_ClearFlag(FLASH_FLAG_BSY|FLASH_FLAG_EOP|FLASH_FLAG_PGERR|FLASH_FLAG_WRPERR);//清除标志位
+//FLASH_ErasePage(FLASH_START_ADDR); //擦除指定地址页
+//FLASH_ProgramWord(FLASH_START_ADDR+(addr*4),data); //从指定页的0地址开始写
+//FLASH_ClearFlag(FLASH_FLAG_BSY|FLASH_FLAG_EOP|FLASH_FLAG_PGERR|FLASH_FLAG_WRPERR);//清除标志位
+//FLASH_Lock(); //锁定FLASH编程擦除控制器
+//}
 
 //FLASH读取数据测试
 uint32_t Flashtemp;
@@ -695,7 +677,7 @@ void printFlashTest(void)
 		//printf("CurrentDifference:0x%x,",choose);
 		/*读取应差值*/
 		choose = Flashtemp % 0x01000000;
-		CurrentThreshold = choose;
+		CICurrentThreshold = choose;
 		//printf("CurrentThreshold:0x%x\r\n",choose);
 
 }

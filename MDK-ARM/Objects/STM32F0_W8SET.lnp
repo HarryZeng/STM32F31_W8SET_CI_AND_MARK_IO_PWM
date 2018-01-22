@@ -2,6 +2,7 @@
 ".\objects\stm32f0xx_it.o"
 ".\objects\main.o"
 ".\objects\process.o"
+".\objects\flash.o"
 ".\objects\stm32f0xx_adc.o"
 ".\objects\stm32f0xx_can.o"
 ".\objects\stm32f0xx_cec.o"

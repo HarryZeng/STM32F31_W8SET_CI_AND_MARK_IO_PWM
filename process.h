@@ -50,14 +50,14 @@
 
 #define Default_Difference  80
 
-#define PWM1_HIGH  	176
-#define PWM1_LOW  	0
-#define PWMx_HIGH  	12
-#define PWMx_LOW  	0
-#define PWMy_HIGH  	12
-#define PWMy_LOW  	0
-#define PWMz_HIGH  	12
-#define PWMz_LOW  	0
+	#define PWM1_HIGH  	110
+	#define PWM1_LOW  	0
+	#define PWMx_HIGH  	1
+	#define PWMx_LOW  	0
+	#define PWMy_HIGH  	2
+	#define PWMy_LOW  	0
+	#define PWMz_HIGH  	3
+	#define PWMz_LOW  	0
 
 
 /*PWM通道状态控制 宏定义*/

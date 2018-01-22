@@ -182,7 +182,7 @@ void adc_config()
 }  
   
 void adc_gpio_init()  
-{  
+{
     GPIO_InitTypeDef gpio_init_structure;  
     //??GPIO??  
     RCC_AHBPeriphClockCmd(RCC_AHBPeriph_GPIOA , ENABLE);  
@@ -537,7 +537,6 @@ void DMA1_Channel1_IRQHandler()
 //			}
 			DMA_ClearITPendingBit(DMA_IT_TC);                   //清楚DMA中断标志位  
     }  
-    
 }  
 
 void TIM14_IRQHandler()
@@ -606,7 +605,7 @@ void GPIO_INIT(void)
     GPIO_Init(FB_GPIO_Port, &gpio_init_structure);  
 	
 		gpio_init_structure.GPIO_Pin = GOODBAD_Pin;
-		gpio_init_structure.GPIO_Mode = GPIO_Mode_IN;                   //????(??)??  
+		gpio_init_structure.GPIO_Mode = GPIO_Mode_OUT;                   //????(??)??  
     gpio_init_structure.GPIO_Speed = GPIO_Speed_2MHz;              //Fast speed  
 		gpio_init_structure.GPIO_PuPd= GPIO_PuPd_DOWN;                    //??
     GPIO_Init(GOODBAD_GPIO_Port, &gpio_init_structure);  
@@ -677,3 +676,20 @@ int main(void)
 }
 
 
+//int ProgramCounter=0;
+//void ProgramCheck(void)
+//{
+//	ProgramCounter 		= ReadFlash(ProgramRUNcounter_Mode_FLASH_DATA_ADDRESS);
+//	if(ProgramCounter>65535 || ProgramCounter<0)
+//	{
+//		ProgramCounter = 0;
+//		ResetParameter();
+//	}
+//	ProgramCounter = ProgramCounter+1;
+//	WriteFlash(ProgramRUNcounter_Mode_FLASH_DATA_ADDRESS,ProgramCounter);
+//	DelaymsSet(50); 	
+//	if(ProgramCounter<=1)
+//	{
+//		ResetParameter();
+//	}
+//}
