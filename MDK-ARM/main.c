@@ -1,6 +1,7 @@
 #include  "stm32f0xx.h"
 #include "stdio.h"
 #include "process.h"
+#include "flash.h"
 
 #define DMA_BUFFER_SIZE     1  
 
@@ -233,7 +234,6 @@ void adc_dma_init()
 void TIM1_Base_Config(void)
 {
 	  TIM_TimeBaseInitTypeDef timer_init_structure;  
-		TIM_OCInitTypeDef timer_OCinit_structure; 
     NVIC_InitTypeDef nvic_init_structure;  
 
 		RCC_APB2PeriphClockCmd(RCC_APB2Periph_TIM1 , ENABLE);	
@@ -348,12 +348,12 @@ void TIM1_PWM_Config(void)
 		TIM_OC3Init(TIM1, &timer_OCinit_structure);//????1??
 		TIM_OC3PreloadConfig(TIM1,TIM_OCPreload_Disable);
 
-		TIM_ITConfig(TIM1, TIM_IT_Update, ENABLE);                      //使能TIM1中断
-		TIM_ITConfig(TIM1, TIM_IT_CC1, ENABLE);                      //使能TIM1中断
-		TIM_ITConfig(TIM1, TIM_IT_CC2, ENABLE);                      //使能TIM1中断
-		TIM_ITConfig(TIM1, TIM_IT_CC3, ENABLE);                      //使能TIM1中断
+//		TIM_ITConfig(TIM1, TIM_IT_Update, ENABLE);                      //使能TIM1中断
+//		TIM_ITConfig(TIM1, TIM_IT_CC1, ENABLE);                      //使能TIM1中断
+//		TIM_ITConfig(TIM1, TIM_IT_CC2, ENABLE);                      //使能TIM1中断
+//		TIM_ITConfig(TIM1, TIM_IT_CC3, ENABLE);                      //使能TIM1中断
 
-		TIM_ARRPreloadConfig(TIM1,DISABLE);
+		//TIM_ARRPreloadConfig(TIM1,DISABLE);
 
 		/* TIM1 ?????*/
 		//TIM_SelectOutputTrigger(TIM1, TIM_TRGOSource_Update);							//选择TIM1的timer为触发源  
@@ -418,8 +418,8 @@ void TIM2_PWM_Config(void)
 		TIM_OC3PreloadConfig(TIM2,TIM_OCPreload_Enable);
 		TIM_ARRPreloadConfig(TIM2,ENABLE);
 		
-    TIM_ITConfig(TIM2, TIM_IT_Update, ENABLE);                      //使能TIM2中断
-		TIM_SelectOutputTrigger(TIM2, TIM_TRGOSource_Update);           //选择TIM1的update为触发源  
+    //TIM_ITConfig(TIM2, TIM_IT_Update, ENABLE);                      //使能TIM2中断
+		//TIM_SelectOutputTrigger(TIM2, TIM_TRGOSource_Update);           //选择TIM1的update为触发源  
 		//TIM_SelectInputTrigger(TIM2, TIM_TS_ITR0);
 		//TIM_SelectSlaveMode(TIM2, TIM_SlaveMode_Gated);//触发模式只启动，门控制启停都可以控制
 		//TIM_SelectMasterSlaveMode(TIM2, TIM_MasterSlaveMode_Enable);//主从模式MSM
@@ -446,12 +446,12 @@ void TIM3_Config(void)
   
     timer_init_structure.TIM_ClockDivision = TIM_CKD_DIV1;          //系统时钟,不分频,24M  
     timer_init_structure.TIM_CounterMode = TIM_CounterMode_Up;      //向上计数模式  
-    timer_init_structure.TIM_Period = 1222;                          //每1000 uS触发一次中断,??ADC  
+    timer_init_structure.TIM_Period = 1000;                          //每1000 uS触发一次中断,??ADC  
     timer_init_structure.TIM_Prescaler = 47;                      //计数时钟分频,f=1M,systick=1 uS  
     timer_init_structure.TIM_RepetitionCounter = 0x00;              //发生0+1的update事件产生中断 
 		
     TIM_TimeBaseInit(TIM3, &timer_init_structure);  
-		TIM_ITConfig(TIM3, TIM_IT_Update, ENABLE);                      //使能TIM3中断
+		//TIM_ITConfig(TIM3, TIM_IT_Update, ENABLE);                      //使能TIM3中断
     TIM_Cmd(TIM3, ENABLE);                                          //使能TIM3
 	
 }
@@ -577,7 +577,7 @@ void TIM14_Config(void)
     timer_init_structure.TIM_RepetitionCounter = 0x00;              //发生0+1的update事件产生中断 
 		
     TIM_TimeBaseInit(TIM14, &timer_init_structure);  
-		TIM_ITConfig(TIM14, TIM_IT_Update, ENABLE);                      //使能TIM14中断
+		//TIM_ITConfig(TIM14, TIM_IT_Update, ENABLE);                      //使能TIM14中断
     TIM_Cmd(TIM14, ENABLE);                                          //使能TIM14
 }
 
@@ -664,32 +664,122 @@ void DelaymsSet(int16_t ms)
 		}
 }
 
-int main(void)
+uint8_t CheckFLag=0;
+
+/*************************************************************/
+#define 	FLASH_START_ADDR1 	 						0x08007000    //0x0800FFF0
+
+uint8_t* UID=(uint8_t*)0x1FFFF7AC;  //获取UID  stm32f0:0x1FFFF7AC,stm32f100:0x1FFFF7E8
+uint32_t Fml_Constant 	= 0x19101943;//输入到公式的常熟
+uint8_t *C= (uint8_t*)&Fml_Constant;//把常量转化成数组
+uint8_t FormulaResult[4];
+uint32_t FormulaCheck;
+uint32_t UIDFlashResult;
+uint16_t Fml_CRC16;
+uint8_t D[12];
+int ProgramCounter=0;
+
+void Formula_100(uint8_t *D,uint8_t *Result)
 {
-	RCC_Configuration();
-	GPIO_INIT();
-	BSP_init();
-	RCC_GetClocksFreq(&SysClock);
-	DelaymsSet(5000); 
+	D[0] = UID[4];
+	D[1] = UID[8];
+	D[2] = UID[1];
+	D[3] = UID[3];
+	D[4] = UID[0];
+	D[5] = UID[5];
+	D[6] = UID[10];
+	D[7] = UID[7];
+	D[8] = UID[9];
+	D[9] = UID[2];
+	D[10] = UID[11];
+	D[11] = UID[6];
 	
-	DataProcess();
+	Result[0] = C[0] ^ D[0];
+	Result[1] = C[1] ^ D[6] ^ D[7] ^ D[8] ^ D[9] ^ D[10] ^ D[11] ;
+	Result[2] = C[2] ^ D[4] ;
+	Result[3] = C[3] ^ D[2] ^ D[1];
 }
 
+uint8_t FlashCheck(void)
+{
+		uint8_t FlashFlag;
+		Formula_100(D,FormulaResult);
+		FormulaCheck = FormulaResult[0]+(FormulaResult[1]<<8)+(FormulaResult[2]<<16)+(FormulaResult[3]<<24);
+		//UIDFlashResult = *(__IO uint32_t*)(FLASH_START_ADDR1);
+		UIDFlashResult = *(uint32_t*)(FLASH_START_ADDR1);
+		if(UIDFlashResult==FormulaCheck)
+			FlashFlag =1;
+		else
+			FlashFlag =0;
+		
+		return FlashFlag;
+}
 
-//int ProgramCounter=0;
-//void ProgramCheck(void)
-//{
-//	ProgramCounter 		= ReadFlash(ProgramRUNcounter_Mode_FLASH_DATA_ADDRESS);
-//	if(ProgramCounter>65535 || ProgramCounter<0)
-//	{
-//		ProgramCounter = 0;
-//		ResetParameter();
-//	}
-//	ProgramCounter = ProgramCounter+1;
-//	WriteFlash(ProgramRUNcounter_Mode_FLASH_DATA_ADDRESS,ProgramCounter);
-//	DelaymsSet(50); 	
-//	if(ProgramCounter<=1)
-//	{
-//		ResetParameter();
-//	}
-//}
+uint16_t Formula_CRC16(uint8_t *p,uint8_t len)
+{
+	uint8_t i;
+	while(len--)
+	{
+		for(i=0x80; i!=0; i>>=1)
+		{
+			if((Fml_CRC16 & 0x8000) != 0)
+			{
+				Fml_CRC16 <<= 1;
+				Fml_CRC16 ^= 0x1021;
+			}
+			else
+			{
+				Fml_CRC16 <<= 1;
+			}
+			if((*p&i)!=0)
+			{
+				Fml_CRC16 ^= 0x1021;
+			}
+		}
+		p++;
+	}
+	return Fml_CRC16;
+}
+void ProgramCheck(void)
+{
+	ProgramCounter 		= ReadFlash(ProgramRUNcounter_Mode_FLASH_DATA_ADDRESS);
+	if(ProgramCounter>65535 || ProgramCounter<0)
+	{
+		ProgramCounter = 0;
+		ResetParameter();
+	}
+	ProgramCounter = ProgramCounter+1;
+	WriteFlash(ProgramRUNcounter_Mode_FLASH_DATA_ADDRESS,ProgramCounter);
+	DelaymsSet(50); 	
+	if(ProgramCounter<=1)
+	{
+		ResetParameter();
+	}
+}
+
+/***************主函数***************/
+int main(void)
+{
+		uint32_t checkcouter;
+		RCC_Configuration();
+		GPIO_INIT();
+		BSP_init();
+		RCC_GetClocksFreq(&SysClock);
+		DelaymsSet(5000); 
+		
+		CheckFLag = FlashCheck();
+	
+		if(1)
+		{
+			/*程序运行次数检测*/
+			ProgramCheck();
+			/*主要运行函数*/
+			DataProcess();
+		}
+		else
+			while(1)
+			{
+				checkcouter++;
+			}
+	
+}

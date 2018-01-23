@@ -14,7 +14,7 @@
 ///* 包含的头文件 --------------------------------------------------------------*/
 /* Includes ------------------------------------------------------------------*/
 #include "process.h"
-
+#include "flash.h"
 /*----------------------------------宏定义-------------------------------------*/
 
 
@@ -32,6 +32,8 @@ void 	ShortCircuitProtection(void);
 void 	WriteFlash(uint32_t addr,uint32_t data);
 extern void DelaymsSet(int16_t ms);
 void SET_GOODBAD(void);
+void GetEEPROM(void);
+uint8_t Get_FB_Flag(void);
 /*------------------------------------全局变量---------------------------------------*/
 uint32_t ADC_value = 0;
 uint8_t 	ShortCircuit=0;
@@ -58,7 +60,6 @@ PWM_Number CurrentPWM = PWMX; //默认当前PWM通道为X
 uint32_t S_Last,S_Current,S_History,S_FINAL;
 int CICurrentThreshold=500;
 int MAKCurrentThreshold=500;
-int CurrentDifference = Default_Difference;//默认应差值
 
 uint32_t RegisterACounter=0;
 
@@ -110,7 +111,7 @@ void DataProcess(void)
 	/*
 		FALSH 读取参数
 	*/
-	printFlashTest();
+	GetEEPROM();
 	
 	for(First_ten_times = 0;First_ten_times<10;First_ten_times++) /*刚上电，前十组PWM只算 RegisterA*/
 	{
@@ -133,6 +134,11 @@ void DataProcess(void)
 //				}
 //		}
 		
+		
+		
+
+		FB_Flag = 1;
+			
 		//if(KeyIndex<1)   /*小于1则，KeyIndex =0 没按键响应，当KeyIndex>=1时，则按键过SET按键*/
 		{
 			/*根据FB电平高低判断RegisterA*/
@@ -143,14 +149,12 @@ void DataProcess(void)
 			
 			SetOut(RegisterA);
 		}
-	
+		
 		/*按键进入自学习模式*/
 		if(KeyTime>0)  
 		{
-			//printf("first enter ,key time:%d\r\n",KeyTime);
 			OUTPin_STATE = GPIO_ReadInputDataBit(OUT_GPIO_Port,OUT_Pin); //读取OUT的值,用于写FLASH时，保持OUT的引脚电平不变
 			GPIO_WriteBit(OUT_GPIO_Port, OUT_Pin, (BitAction)OUTPin_STATE);
-			
 			if(FB_Flag)
 			{
 				CI_Mode_SelfLearning();  //CI MODE
@@ -163,6 +167,10 @@ void DataProcess(void)
 		}
 		/*Good Bad*/
 		SET_GOODBAD();
+		/*FB Flag*/
+		FB_Flag = Get_FB_Flag();
+		/*按键扫描*/
+		scan_key();
 	}
 }
 
@@ -182,6 +190,7 @@ void CI_PWM_OUT(void)
 	PWMX_ON;
 	while(TIM_GetCounter(MainTIMER)<PWMx_HIGH);// 拉高PWMX 1us
 	PWMX_OFF;
+	ADC_Conversion_Flag = 0;
 	ADC_StartOfConversion(ADC1);
 	while(ADC_Conversion_Flag==0);  //等待PWMX的ADC采集完成
 	ADC_Conversion_Flag = 0;
@@ -189,6 +198,7 @@ void CI_PWM_OUT(void)
 	PWMY_ON;
 	while(TIM_GetCounter(MainTIMER)<PWMy_HIGH);// 拉高PWMX 1us
 	PWMY_OFF;
+	ADC_Conversion_Flag = 0;
 	ADC_StartOfConversion(ADC1);
 	while(ADC_Conversion_Flag==0);  //等待PWMX的ADC采集完成
 	ADC_Conversion_Flag = 0;
@@ -196,6 +206,7 @@ void CI_PWM_OUT(void)
 	PWMZ_ON;
 	while(TIM_GetCounter(MainTIMER)<PWMz_HIGH);// 拉高PWMX 1us
 	PWMZ_OFF;
+	ADC_Conversion_Flag = 0;
 	ADC_StartOfConversion(ADC1);
 	while(ADC_Conversion_Flag==0);  //等待PWMX的ADC采集完成
 	ADC_Conversion_Flag = 0;
@@ -329,6 +340,7 @@ void MARK_PWM_OUT(PWM_Number PWM)
 		/*PWMX的ADC开始*/
 		while(TIM_GetCounter(MainTIMER)<PWMx_HIGH);// 拉高PWMX 1us
 		PWMX_OFF;
+		ADC_Conversion_Flag = 0;
 		ADC_StartOfConversion(ADC1);
 		while(ADC_Conversion_Flag==0);  //等待PWMX的ADC采集完成
 		ADC_Conversion_Flag = 0;
@@ -360,36 +372,83 @@ void MARK_PWM_OUT(PWM_Number PWM)
 		
 	else if(PWM == PWMY)
 	{
-					TIM_SetCounter(MainTIMER,0X00);
-					PWM1_ON;	
-					PWMX_OFF;
-					PWMY_ON;
-					PWMZ_OFF;
-					/*PWMX的ADC开始*/
-					while(TIM_GetCounter(MainTIMER)<PWMx_HIGH);// 拉高PWMX 1us
-					PWMY_OFF;
-					ADC_StartOfConversion(ADC1);
-					while(ADC_Conversion_Flag==0);  //等待PWMX的ADC采集完成
-					ADC_Conversion_Flag = 0;
-					PWM1_OFF;	
+		TIM_SetCounter(MainTIMER,0X00);
+		PWM1_ON;	
+		PWMY_ON;
+		PWMX_OFF;
+		PWMZ_OFF;
+		/*PWMX的ADC开始*/
+		while(TIM_GetCounter(MainTIMER)<PWMx_HIGH);// 拉高PWMX 1us
+		PWMY_OFF;
+		ADC_Conversion_Flag = 0;
+		ADC_StartOfConversion(ADC1);
+		while(ADC_Conversion_Flag==0);  //等待PWMX的ADC采集完成
+		ADC_Conversion_Flag = 0;
+		PWM1_OFF;	
+		SX[MAK_PWMx_y_z_TotalCounter] = selfADCValue[MAK_PWMx_y_z_Counter++];
+		MAK_PWMx_y_z_TotalCounter++;
+		if(MAK_PWMx_y_z_TotalCounter<4)
+		{
+			while(TIM_GetCounter(MainTIMER)<PWM1_HIGH);//一组累加完成，等待
+		}
+		else if(MAK_PWMx_y_z_TotalCounter>3)  //4组，12个数据完成
+		{
+			ADCIndex = 0;
+			MAK_PWMx_y_z_TotalCounter = 0;
+			MAK_PWMx_y_z_Counter = 0;
+			SMARK = (SX[0]+SX[1]+SX[2]+SX[3])/4; //累加求平均
+			if(SMARK<10)
+				SMARK= 10;	
+			if(SMARK > MAKCurrentThreshold+DX/4)
+			{
+				RegisterA = 1;
+			}
+			else if(SMARK < MAKCurrentThreshold- DX -50)
+			{
+				RegisterA = 0;
+			}
+		}
 	
 	}
 	
 	else if(PWM ==  PWMZ)
 	{
-					TIM_SetCounter(MainTIMER,0X00);
-					PWM1_ON;	
-					PWMX_OFF;
-					PWMY_OFF;
-					PWMZ_ON;
-					/*PWMX的ADC开始*/
-					while(TIM_GetCounter(MainTIMER)<PWMx_HIGH);// 拉高PWMX 1us
-					PWMZ_OFF;
-					ADC_StartOfConversion(ADC1);
-					while(ADC_Conversion_Flag==0);  //等待PWMX的ADC采集完成
-					ADC_Conversion_Flag = 0;
-					PWM1_OFF;	
-	
+		TIM_SetCounter(MainTIMER,0X00);
+		PWM1_ON;	
+		PWMZ_ON;
+		PWMX_OFF;
+		PWMY_OFF;
+		/*PWMX的ADC开始*/
+		while(TIM_GetCounter(MainTIMER)<PWMx_HIGH);// 拉高PWMX 1us
+		PWMZ_OFF;
+		ADC_Conversion_Flag = 0;
+		ADC_StartOfConversion(ADC1);
+		while(ADC_Conversion_Flag==0);  //等待PWMX的ADC采集完成
+		ADC_Conversion_Flag = 0;
+		PWM1_OFF;	
+		SX[MAK_PWMx_y_z_TotalCounter] = selfADCValue[MAK_PWMx_y_z_Counter++];
+		MAK_PWMx_y_z_TotalCounter++;
+		if(MAK_PWMx_y_z_TotalCounter<4)
+		{
+			while(TIM_GetCounter(MainTIMER)<PWM1_HIGH);//一组累加完成，等待
+		}
+		else if(MAK_PWMx_y_z_TotalCounter>3)  //4组，12个数据完成
+		{
+			ADCIndex = 0;
+			MAK_PWMx_y_z_TotalCounter = 0;
+			MAK_PWMx_y_z_Counter = 0;
+			SMARK = (SX[0]+SX[1]+SX[2]+SX[3])/4; //累加求平均
+			if(SMARK<10)
+				SMARK= 10;	
+			if(SMARK > MAKCurrentThreshold+DX/4)
+			{
+				RegisterA = 1;
+			}
+			else if(SMARK < MAKCurrentThreshold- DX -50)
+			{
+				RegisterA = 0;
+			}
+		}
 	}
 	
 }
@@ -400,10 +459,22 @@ void MARK_GetRegisterAState(void)
 		MARK_PWM_OUT(CurrentPWM);
 }
 
-
 /***************************************
 *
 *读取KG拨码开关的值
+*
+**************************************/
+uint8_t Get_FB_Flag(void)
+{
+	
+	return GPIO_ReadInputDataBit(FB_GPIO_Port,FB_Pin);
+	
+}
+
+
+/***************************************
+*
+*Good Bad的LED显示
 *
 **************************************/
 void  SET_GOODBAD(void)
@@ -435,18 +506,6 @@ void  SetOut(uint8_t OUT_Value)
 	}
 }
 
-
-///***/
-//uint32_t SelfLearningGetADC(uint32_t *Self_ADC_Value)
-//{
-//		while(sample_finish) /*DMA中断中，ADC转换完成标记*/
-//		{
-//			*Self_ADC_Value = adc_dma_tab[0];
-//			sample_finish = 0;
-//			return 1;
-//		}
-//		return 0;
-//}
 /***************************************
 *
 *自学习计算
@@ -454,32 +513,31 @@ void  SetOut(uint8_t OUT_Value)
 **************************************/
 void  MARK_Mode_SelfLearning(void)
 {
-		uint8_t selfADCIndex=0;
-		uint8_t k=0;
-		EnterSelfFlag = 1; /*进入自学习标记位*/
-		DMAIndex=0;
-	
-		DelaymsSet(500);
-	
-		if(SelfGetADCWell)   /*在TIM1的中断中，触发了3路轮流发出*/
-		{
-			SelfGetADCWell = 0;
-			for(selfADCIndex=0,k=0;k<4;k++)
-			{
-				SX[k] = selfADCValue[selfADCIndex++];
-				SY[k] = selfADCValue[selfADCIndex++];
-				SZ[k] = selfADCValue[selfADCIndex++];	
-			}
+	uint8_t SelfLearn_PWMx_y_zTotalCounter = 0;
+	uint8_t SelfLearn_PWMx_y_z_Counter = 0;
+	while(SelfLearn_PWMx_y_zTotalCounter<4)
+	{
+		CI_PWM_OUT(); 
+		SX[SelfLearn_PWMx_y_zTotalCounter] = selfADCValue[SelfLearn_PWMx_y_z_Counter++];
+		SY[SelfLearn_PWMx_y_zTotalCounter] = selfADCValue[SelfLearn_PWMx_y_z_Counter++];
+		SZ[SelfLearn_PWMx_y_zTotalCounter] = selfADCValue[SelfLearn_PWMx_y_z_Counter++];
+		SelfLearn_PWMx_y_zTotalCounter++;
+		//scan_key(); //按键扫面
+		while(TIM_GetCounter(MainTIMER)<PWM1_HIGH);//一组累加完成，等待
+	}
+	/*4组，12个数据完成*/
+			ADCIndex = 0;
+			SelfLearn_PWMx_y_zTotalCounter = 0;
+			SelfLearn_PWMx_y_z_Counter = 0;
+		
 			SXA_B[KeyIndex] = (SX[0]+SX[1]+SX[2]+SX[3])/4; //累加求平均
 			SYA_B[KeyIndex] = (SY[0]+SY[1]+SY[2]+SY[3])/4;
 			SZA_B[KeyIndex] = (SZ[0]+SZ[1]+SZ[2]+SZ[3])/4;
-						
-		}; /*等待获取四组ADC成功*/
+	 /*等待获取四组ADC成功*/
 		
 		KeyIndex++;  //记录第几次按键   1->SXA,2->SXB
 		if(KeyIndex>=2) //第二次按键
 		{
-			//printf("second enter ,key time:%d\r\n",KeyTime);
 				KeyIndex = 0;
 				/*计算大小绝对值*/
 				/*----------PWMX对比大小--------*/
@@ -512,40 +570,37 @@ void  MARK_Mode_SelfLearning(void)
 				/*找最大值,计算阈值，判断PWM通道*/
 					BIG=(X>Y)?X:Y;
 					BIG=(BIG>Z)?BIG:Z;
-					FLASHData = 0x00000000;
 					if(BIG==X)
 					{
-						MAKCurrentThreshold = (SXA_B[1] + SXA_B[0])/2;
+						MAKCurrentThreshold = SXA_B[0];
 						CurrentPWM = PWMX;
-						FLASHData = FLASHData+MAKCurrentThreshold+0x10000000;
-						//printf("CurrentPWM = PWMX,CurrentThreshold:%d\r\n",CurrentThreshold);
+						WriteFlash(MAKCurrentThreshold_FLASH_DATA_ADDRESS,MAKCurrentThreshold);
+						WriteFlash(CurrentPWM_FLASH_DATA_ADDRESS,CurrentPWM);
 					}
 					else if(BIG==Y)
 					{
-						MAKCurrentThreshold = (SYA_B[1] + SYA_B[0])/2;
+						MAKCurrentThreshold = SYA_B[0];
 						CurrentPWM = PWMY;
-						FLASHData = FLASHData+MAKCurrentThreshold+0x20000000;
-						//printf("CurrentPWM = PWMY,CurrentThreshold:%d\r\n",CurrentThreshold);
+						WriteFlash(MAKCurrentThreshold_FLASH_DATA_ADDRESS,MAKCurrentThreshold);
+						WriteFlash(CurrentPWM_FLASH_DATA_ADDRESS,CurrentPWM);
 					}
-					else	
+					else	if(BIG==Y)
 					{
-						MAKCurrentThreshold = (SZA_B[1] + SZA_B[0])/2;
+						MAKCurrentThreshold = SZA_B[0];
 						CurrentPWM = PWMZ;
-						FLASHData = FLASHData+MAKCurrentThreshold+0x40000000;
-						//printf("CurrentPWM = PWMZ,CurrentThreshold:%d\r\n",CurrentThreshold);
+						WriteFlash(MAKCurrentThreshold_FLASH_DATA_ADDRESS,MAKCurrentThreshold);
+						WriteFlash(CurrentPWM_FLASH_DATA_ADDRESS,CurrentPWM);
 					}	
-					WriteFlash(0,FLASHData);																	//保存FLASH
-					//printf("Save Successfully\r\n");
-					EnterSelfFlag = 0;
 		}
 			KeyTime = 0; //清楚按键标记
 }
 
 /*CI_Mode_SelfLearning*/
-uint8_t SelfLearn_PWMx_y_zTotalCounter = 0;
-uint8_t SelfLearn_PWMx_y_z_Counter = 0;
+
 void CI_Mode_SelfLearning(void)
 {
+	uint8_t SelfLearn_PWMx_y_zTotalCounter = 0;
+	uint8_t SelfLearn_PWMx_y_z_Counter = 0;
 	while(SelfLearn_PWMx_y_zTotalCounter<4)
 	{
 		CI_PWM_OUT(); 
@@ -553,13 +608,11 @@ void CI_Mode_SelfLearning(void)
 		SY[SelfLearn_PWMx_y_zTotalCounter] = selfADCValue[SelfLearn_PWMx_y_z_Counter++];
 		SZ[SelfLearn_PWMx_y_zTotalCounter] = selfADCValue[SelfLearn_PWMx_y_z_Counter++];
 		SelfLearn_PWMx_y_zTotalCounter++;
-		//scan_key(); //按键扫面
-		while(TIM_GetCounter(MainTIMER)<120);//一组累加完成，等待
+
+		while(TIM_GetCounter(MainTIMER)<PWM1_HIGH);//一组累加完成，等待
 	}
 	/*4组，12个数据完成*/
 			ADCIndex = 0;
-			SelfLearn_PWMx_y_zTotalCounter = 0;
-			SelfLearn_PWMx_y_z_Counter = 0;
 		
 			SXA_B[KeyIndex] = (SX[0]+SX[1]+SX[2]+SX[3])/4; //累加求平均
 			SYA_B[KeyIndex] = (SY[0]+SY[1]+SY[2]+SY[3])/4;
@@ -604,11 +657,18 @@ void CI_Mode_SelfLearning(void)
 				
 				CICurrentThreshold = 1000 - (NS_SET + NXYZ_SET)/2;
 				
-			if(CICurrentThreshold<=200)
-					CICurrentThreshold = 200;
-			else if(CICurrentThreshold>=1000)
-				CICurrentThreshold = 1000;
-
+				if(CICurrentThreshold<=200)
+						CICurrentThreshold = 200;
+				else if(CICurrentThreshold>=1000)
+					CICurrentThreshold = 1000;
+			
+				WriteFlash(SA_FLASH_DATA_ADDRESS,SA_B[0]);
+				WriteFlash(CXA_FLASH_DATA_ADDRESS,CXA_B[0]);
+				WriteFlash(CYA_FLASH_DATA_ADDRESS,CYA_B[0]);
+				WriteFlash(CZA_FLASH_DATA_ADDRESS,CZA_B[0]);
+				WriteFlash(CICurrentThreshold_FLASH_DATA_ADDRESS,CICurrentThreshold);
+								
+			
 			}
 			KeyTime = 0; //清楚按键标记
 }
@@ -654,31 +714,46 @@ void scan_key(void)
 //}
 
 //FLASH读取数据测试
-uint32_t Flashtemp;
-void printFlashTest(void)
+/*****************************
+*
+*初始化所有参数
+*
+****************************/
+void ResetParameter(void)
 {
-		uint32_t choose = 0;
-		Flashtemp = *(__IO uint32_t*)(FLASH_START_ADDR);
-		//printf("addr:0x%x, data:0x%x\r\n", addr, temp);
-		choose = Flashtemp & 0xF0000000;
-		//DelaymsSet(500);
-		/*读取PWM通道*/
-		switch (choose)
-		{
-			case 0x10000000: CurrentPWM = PWMX;break;
-			case 0x20000000: CurrentPWM = PWMY;break;
-			case 0x40000000: CurrentPWM = PWMZ;break;
-			default : break;
-		}
-		//printf("CurrentPWM:0x%x,",choose);
-		/*应差值固定为 */
-		CurrentDifference = Default_Difference;
+		MAKCurrentThreshold=500;
+		CurrentPWM = PWMX;
+	
+		CICurrentThreshold=500;
+		SA_B[0] = 0x00;
+		CXA_B[0] = 0x00;
+		CYA_B[0] = 0x00;
+		CZA_B[0] = 0x00;
+		
+		WriteFlash(MAKCurrentThreshold_FLASH_DATA_ADDRESS,MAKCurrentThreshold);
 
-		//printf("CurrentDifference:0x%x,",choose);
-		/*读取应差值*/
-		choose = Flashtemp % 0x01000000;
-		CICurrentThreshold = choose;
-		//printf("CurrentThreshold:0x%x\r\n",choose);
+		WriteFlash(CurrentPWM_FLASH_DATA_ADDRESS,CurrentPWM);
+
+		WriteFlash(CICurrentThreshold_FLASH_DATA_ADDRESS,CICurrentThreshold);
+
+		WriteFlash(SA_FLASH_DATA_ADDRESS,SA_B[0]);
+
+		WriteFlash(CXA_FLASH_DATA_ADDRESS,CXA_B[0]);
+
+		WriteFlash(CYA_FLASH_DATA_ADDRESS,CYA_B[0]);
+
+		WriteFlash(CZA_FLASH_DATA_ADDRESS,CZA_B[0]);
+}
+
+void GetEEPROM(void)
+{
+			MAKCurrentThreshold 	= ReadFlash(MAKCurrentThreshold_FLASH_DATA_ADDRESS);
+			CurrentPWM 						= ReadFlash(CurrentPWM_FLASH_DATA_ADDRESS);
+			CICurrentThreshold 		= ReadFlash(CICurrentThreshold_FLASH_DATA_ADDRESS);
+			SA_B[0] 							= ReadFlash(SA_FLASH_DATA_ADDRESS);
+			CXA_B[0] 							= ReadFlash(CXA_FLASH_DATA_ADDRESS);
+			CYA_B[0] 							= ReadFlash(CYA_FLASH_DATA_ADDRESS);
+			CZA_B[0] 							= ReadFlash(CZA_FLASH_DATA_ADDRESS);
 
 }
 

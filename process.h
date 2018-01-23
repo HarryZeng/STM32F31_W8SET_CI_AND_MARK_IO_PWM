@@ -48,9 +48,7 @@
 
 /*”¶≤Ó÷µ*/	
 
-#define Default_Difference  80
-
-	#define PWM1_HIGH  	110
+	#define PWM1_HIGH  	80
 	#define PWM1_LOW  	0
 	#define PWMx_HIGH  	1
 	#define PWMx_LOW  	0
@@ -113,7 +111,7 @@ typedef enum
 
 
 void DataProcess(void);
-
+void ResetParameter(void);
 
 
 #ifdef __cplusplus

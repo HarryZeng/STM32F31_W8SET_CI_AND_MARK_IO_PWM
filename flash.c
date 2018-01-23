@@ -43,20 +43,14 @@ FLASH_Status WriteInternalFlash(uint32_t addr,uint32_t data)
 *******************************************/
 void EraseFlash(void)
 {	
-	InitInternalFlash(OUT1_Mode_FLASH_DATA_ADDRESS);
-	InitInternalFlash(OUT1_Value_FLASH_DATA_ADDRESS);
-	InitInternalFlash(SV_FLASH_DATA_ADDRESS);
-	InitInternalFlash(Threshold_FLASH_DATA_ADDRESS);
-	InitInternalFlash(ATT100_FLASH_DATA_ADDRESS);
-	InitInternalFlash(KEY_FLASH_DATA_ADDRESS);
-	InitInternalFlash(RegisterB_FLASH_DATA_ADDRESS);
-	InitInternalFlash(FSV_FLASH_DATA_ADDRESS);
-	InitInternalFlash(HI_FLASH_DATA_ADDRESS);
-	InitInternalFlash(LO_FLASH_DATA_ADDRESS);
-	InitInternalFlash(DETECT_FLASH_DATA_ADDRESS);
-	InitInternalFlash(PERCENTAGE_FLASH_DATA_ADDRESS);
-	InitInternalFlash(S_SET_FLASH_DATA_ADDRESS);
-	InitInternalFlash(DSC_FLASH_DATA_ADDRESS);
+	InitInternalFlash(MAKCurrentThreshold_FLASH_DATA_ADDRESS);
+	InitInternalFlash(CurrentPWM_FLASH_DATA_ADDRESS);
+	InitInternalFlash(CICurrentThreshold_FLASH_DATA_ADDRESS);
+	InitInternalFlash(SA_FLASH_DATA_ADDRESS);
+	InitInternalFlash(CXA_FLASH_DATA_ADDRESS);
+	InitInternalFlash(CYA_FLASH_DATA_ADDRESS);
+	InitInternalFlash(CZA_FLASH_DATA_ADDRESS);
+
 }
 
 /******************************************

@@ -32,3 +32,4 @@
 .\objects\main.o: ..\Libraries\STM32F0xx_StdPeriph_Driver\inc\stm32f0xx_misc.h
 .\objects\main.o: d:\Keil_v5\ARM\ARMCC\Bin\..\include\stdio.h
 .\objects\main.o: ..\..\STM32F31_W8SET_CI_AND_MARK_IO_PWM\process.h
+.\objects\main.o: ..\..\STM32F31_W8SET_CI_AND_MARK_IO_PWM\flash.h
