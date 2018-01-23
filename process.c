@@ -33,6 +33,7 @@ void 	WriteFlash(uint32_t addr,uint32_t data);
 extern void DelaymsSet(int16_t ms);
 void SET_GOODBAD(void);
 void GetEEPROM(void);
+void CI_PWM_OUT(void);
 uint8_t Get_FB_Flag(void);
 /*------------------------------------全局变量---------------------------------------*/
 uint32_t ADC_value = 0;
@@ -85,10 +86,11 @@ int32_t CX,CY,CZ;
 
 int32_t SCI,SMARK;
 int32_t SCI_Min,SCI_Max;
-int32_t DX_Data[6];
+int32_t DX_Data[8];
 int16_t DX_Max = 0,DX_Min=1000;
 uint8_t DX_Index = 0;
 int DX=0;
+uint16_t  GoodBadTime=0;
 /***********************************
 *FLASH 字节定义
 *0x12000032
@@ -137,17 +139,28 @@ void DataProcess(void)
 		
 		
 
-		FB_Flag = 1;
+		FB_Flag = 0;
 			
-		//if(KeyIndex<1)   /*小于1则，KeyIndex =0 没按键响应，当KeyIndex>=1时，则按键过SET按键*/
+		if(KeyIndex<1)   /*小于1则，KeyIndex =0 没按键响应，当KeyIndex>=1时，则按键过SET按键*/
 		{
 			/*根据FB电平高低判断RegisterA*/
 			if(FB_Flag ==1)
+			{
 				CI_GetRegisterAState();
+				/*Good Bad*/
+				SET_GOODBAD();
+			}
 			else if(FB_Flag==0)
+			{
 				MARK_GetRegisterAState();
-			
-			SetOut(RegisterA);
+				
+				SET_GOODBAD();
+			}
+		}
+		else
+		{
+			CI_PWM_OUT();
+			while(TIM_GetCounter(MainTIMER)<PWM1_HIGH);//一组累加完成，等待
 		}
 		
 		/*按键进入自学习模式*/
@@ -161,16 +174,15 @@ void DataProcess(void)
 			}
 			else
 			{
-
 				MARK_Mode_SelfLearning();//MARK MODE
 			}
 		}
-		/*Good Bad*/
-		SET_GOODBAD();
+
 		/*FB Flag*/
 		FB_Flag = Get_FB_Flag();
 		/*按键扫描*/
 		scan_key();
+		GoodBadTime++;
 	}
 }
 
@@ -295,13 +307,13 @@ void CI_GetRegisterAState(void)
 				DX_Index = 0;
 				DX = (DX_Max - DX_Min)/4;
 				DX_Max = 0;
-				DX_Min = 1000;
+				DX_Min = 4095;
 			}
 
 			/***********RegisterA***********/
 			
-			SCI_Max = CICurrentThreshold + DX/4;
-			SCI_Min = CICurrentThreshold - DX - 50; 
+			SCI_Max = CICurrentThreshold + DX/2;
+			SCI_Min = CICurrentThreshold - DX - 100; 
 			
 			if(SCI_Min<10)
 				 SCI_Min= 10;
@@ -334,9 +346,9 @@ void MARK_PWM_OUT(PWM_Number PWM)
 	{
 		TIM_SetCounter(MainTIMER,0X00);
 		PWM1_ON;	
-		PWMX_ON;
 		PWMY_OFF;
 		PWMZ_OFF;
+		PWMX_ON;
 		/*PWMX的ADC开始*/
 		while(TIM_GetCounter(MainTIMER)<PWMx_HIGH);// 拉高PWMX 1us
 		PWMX_OFF;
@@ -344,14 +356,12 @@ void MARK_PWM_OUT(PWM_Number PWM)
 		ADC_StartOfConversion(ADC1);
 		while(ADC_Conversion_Flag==0);  //等待PWMX的ADC采集完成
 		ADC_Conversion_Flag = 0;
+		while(TIM_GetCounter(MainTIMER)<PWM1_LOW);// 拉高PWMX 1us
 		PWM1_OFF;	
 		SX[MAK_PWMx_y_z_TotalCounter] = selfADCValue[MAK_PWMx_y_z_Counter++];
 		MAK_PWMx_y_z_TotalCounter++;
-		if(MAK_PWMx_y_z_TotalCounter<4)
-		{
-			while(TIM_GetCounter(MainTIMER)<PWM1_HIGH);//一组累加完成，等待
-		}
-		else if(MAK_PWMx_y_z_TotalCounter>3)  //4组，12个数据完成
+		while(TIM_GetCounter(MainTIMER)<PWM1_HIGH);//一组累加完成，等待
+		if(MAK_PWMx_y_z_TotalCounter>3)  //4组，12个数据完成
 		{
 			ADCIndex = 0;
 			MAK_PWMx_y_z_TotalCounter = 0;
@@ -359,14 +369,32 @@ void MARK_PWM_OUT(PWM_Number PWM)
 			SMARK = (SX[0]+SX[1]+SX[2]+SX[3])/4; //累加求平均
 			if(SMARK<10)
 				SMARK= 10;	
-			if(SMARK > MAKCurrentThreshold+DX/4)
+			if(SMARK>=4095)
+				SMARK = 4095;
+			
+			DX_Data[DX_Index] = SMARK;
+			if(DX_Data[DX_Index]>DX_Max)
+				DX_Max = DX_Data[DX_Index];
+			if(DX_Data[DX_Index] < DX_Min)
+				DX_Min = DX_Data[DX_Index];
+			DX_Index++;
+			if(DX_Index>7)
 			{
-				RegisterA = 1;
+				DX_Index = 0;
+				DX = DX_Max - DX_Min;
+				DX_Max = 0;
+				DX_Min = 4095;
 			}
-			else if(SMARK < MAKCurrentThreshold- DX -50)
-			{
-				RegisterA = 0;
-			}
+			
+				if(SMARK > MAKCurrentThreshold+DX/2)
+				{
+					RegisterA = 1;
+				}
+				else if(SMARK < MAKCurrentThreshold- DX -150)
+				{
+					RegisterA = 0;
+				}
+
 		}
 	}
 		
@@ -374,9 +402,9 @@ void MARK_PWM_OUT(PWM_Number PWM)
 	{
 		TIM_SetCounter(MainTIMER,0X00);
 		PWM1_ON;	
-		PWMY_ON;
 		PWMX_OFF;
 		PWMZ_OFF;
+		PWMY_ON;
 		/*PWMX的ADC开始*/
 		while(TIM_GetCounter(MainTIMER)<PWMx_HIGH);// 拉高PWMX 1us
 		PWMY_OFF;
@@ -384,14 +412,12 @@ void MARK_PWM_OUT(PWM_Number PWM)
 		ADC_StartOfConversion(ADC1);
 		while(ADC_Conversion_Flag==0);  //等待PWMX的ADC采集完成
 		ADC_Conversion_Flag = 0;
+		while(TIM_GetCounter(MainTIMER)<PWM1_LOW);// 拉高PWMX 1us
 		PWM1_OFF;	
 		SX[MAK_PWMx_y_z_TotalCounter] = selfADCValue[MAK_PWMx_y_z_Counter++];
 		MAK_PWMx_y_z_TotalCounter++;
-		if(MAK_PWMx_y_z_TotalCounter<4)
-		{
-			while(TIM_GetCounter(MainTIMER)<PWM1_HIGH);//一组累加完成，等待
-		}
-		else if(MAK_PWMx_y_z_TotalCounter>3)  //4组，12个数据完成
+		while(TIM_GetCounter(MainTIMER)<PWM1_HIGH);//一组累加完成，等待
+		if(MAK_PWMx_y_z_TotalCounter>3)  //4组，12个数据完成
 		{
 			ADCIndex = 0;
 			MAK_PWMx_y_z_TotalCounter = 0;
@@ -399,25 +425,42 @@ void MARK_PWM_OUT(PWM_Number PWM)
 			SMARK = (SX[0]+SX[1]+SX[2]+SX[3])/4; //累加求平均
 			if(SMARK<10)
 				SMARK= 10;	
-			if(SMARK > MAKCurrentThreshold+DX/4)
+			if(SMARK>=4095)
+				SMARK = 4095;
+			
+			DX_Data[DX_Index] = SMARK;
+			if(DX_Data[DX_Index]>DX_Max)
+				DX_Max = DX_Data[DX_Index];
+			if(DX_Data[DX_Index] < DX_Min)
+				DX_Min = DX_Data[DX_Index];
+			DX_Index++;
+			if(DX_Index>7)
 			{
-				RegisterA = 1;
+				DX_Index = 0;
+				DX = DX_Max - DX_Min;
+				DX_Max = 0;
+				DX_Min = 4095;
 			}
-			else if(SMARK < MAKCurrentThreshold- DX -50)
-			{
-				RegisterA = 0;
-			}
+
+				if(SMARK > MAKCurrentThreshold+DX/2)
+				{
+					RegisterA = 1;
+				}
+				else if(SMARK < MAKCurrentThreshold- DX -150)
+				{
+					RegisterA = 0;
+				}
+
 		}
-	
 	}
 	
 	else if(PWM ==  PWMZ)
 	{
 		TIM_SetCounter(MainTIMER,0X00);
 		PWM1_ON;	
-		PWMZ_ON;
 		PWMX_OFF;
 		PWMY_OFF;
+		PWMZ_ON;
 		/*PWMX的ADC开始*/
 		while(TIM_GetCounter(MainTIMER)<PWMx_HIGH);// 拉高PWMX 1us
 		PWMZ_OFF;
@@ -425,14 +468,12 @@ void MARK_PWM_OUT(PWM_Number PWM)
 		ADC_StartOfConversion(ADC1);
 		while(ADC_Conversion_Flag==0);  //等待PWMX的ADC采集完成
 		ADC_Conversion_Flag = 0;
+		while(TIM_GetCounter(MainTIMER)<PWM1_LOW);// 拉高PWMX 1us
 		PWM1_OFF;	
 		SX[MAK_PWMx_y_z_TotalCounter] = selfADCValue[MAK_PWMx_y_z_Counter++];
 		MAK_PWMx_y_z_TotalCounter++;
-		if(MAK_PWMx_y_z_TotalCounter<4)
-		{
-			while(TIM_GetCounter(MainTIMER)<PWM1_HIGH);//一组累加完成，等待
-		}
-		else if(MAK_PWMx_y_z_TotalCounter>3)  //4组，12个数据完成
+		while(TIM_GetCounter(MainTIMER)<PWM1_HIGH);//一组累加完成，等待
+		if(MAK_PWMx_y_z_TotalCounter>3)  //4组，12个数据完成
 		{
 			ADCIndex = 0;
 			MAK_PWMx_y_z_TotalCounter = 0;
@@ -440,14 +481,31 @@ void MARK_PWM_OUT(PWM_Number PWM)
 			SMARK = (SX[0]+SX[1]+SX[2]+SX[3])/4; //累加求平均
 			if(SMARK<10)
 				SMARK= 10;	
-			if(SMARK > MAKCurrentThreshold+DX/4)
+			if(SMARK>=4095)
+				SMARK = 4095;
+			
+			DX_Data[DX_Index] = SMARK;
+			if(DX_Data[DX_Index]>DX_Max)
+				DX_Max = DX_Data[DX_Index];
+			if(DX_Data[DX_Index] < DX_Min)
+				DX_Min = DX_Data[DX_Index];
+			DX_Index++;
+			if(DX_Index>7)
 			{
-				RegisterA = 1;
-			}
-			else if(SMARK < MAKCurrentThreshold- DX -50)
-			{
-				RegisterA = 0;
-			}
+				DX_Index = 0;
+				DX = DX_Max - DX_Min;
+				DX_Max = 0;
+				DX_Min = 4095;
+			}	
+				if(SMARK > MAKCurrentThreshold+DX/2)
+				{
+					RegisterA = 1;
+				}
+				else if(SMARK < MAKCurrentThreshold- DX -150)
+				{
+					RegisterA = 0;
+				}
+
 		}
 	}
 	
@@ -480,12 +538,39 @@ uint8_t Get_FB_Flag(void)
 void  SET_GOODBAD(void)
 {
 	uint8_t  GOODBAD_STATE;
-	
-	if(SA_B[0]>=300)
-		GPIO_WriteBit(GOODBAD_GPIO_Port,GOODBAD_Pin,Bit_SET); //读取KG的值
-	else if(SA_B[0]<300)
+	if(FB_Flag)
 	{
-		GPIO_WriteBit(GOODBAD_GPIO_Port, GOODBAD_Pin, (BitAction)!GPIO_ReadOutputDataBit(GOODBAD_GPIO_Port, GOODBAD_Pin));
+		if(SA_B[0]>=300)
+		{
+			SetOut(RegisterA);
+			GPIO_WriteBit(GOODBAD_GPIO_Port,GOODBAD_Pin,Bit_SET); //读取KG的值
+		}
+		else if(SA_B[0]<300)
+		{
+			if(GoodBadTime>=500)
+			{
+				GoodBadTime = 0;
+				GPIO_WriteBit(GOODBAD_GPIO_Port, GOODBAD_Pin, (BitAction)!GPIO_ReadOutputDataBit(GOODBAD_GPIO_Port, GOODBAD_Pin));
+			}
+			GPIO_WriteBit(OUT_GPIO_Port, OUT_Pin, Bit_RESET);
+		}
+	}
+	else if(FB_Flag==0)
+	{
+		if(SMARK>200)
+		{
+			SetOut(RegisterA);
+			GPIO_WriteBit(GOODBAD_GPIO_Port,GOODBAD_Pin,Bit_SET); 
+		}
+		else if(SMARK<=200)
+		{
+			if(GoodBadTime>=500)
+			{
+				GoodBadTime = 0;
+				GPIO_WriteBit(GOODBAD_GPIO_Port, GOODBAD_Pin, (BitAction)!GPIO_ReadOutputDataBit(GOODBAD_GPIO_Port, GOODBAD_Pin));
+			}
+			GPIO_WriteBit(OUT_GPIO_Port, OUT_Pin, Bit_RESET);
+		}
 	}
 }
 
@@ -515,6 +600,7 @@ void  MARK_Mode_SelfLearning(void)
 {
 	uint8_t SelfLearn_PWMx_y_zTotalCounter = 0;
 	uint8_t SelfLearn_PWMx_y_z_Counter = 0;
+
 	while(SelfLearn_PWMx_y_zTotalCounter<4)
 	{
 		CI_PWM_OUT(); 

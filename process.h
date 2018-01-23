@@ -48,8 +48,8 @@
 
 /*”¶≤Ó÷µ*/	
 
-	#define PWM1_HIGH  	80
-	#define PWM1_LOW  	0
+	#define PWM1_HIGH  	85
+	#define PWM1_LOW  	20
 	#define PWMx_HIGH  	1
 	#define PWMx_LOW  	0
 	#define PWMy_HIGH  	2
