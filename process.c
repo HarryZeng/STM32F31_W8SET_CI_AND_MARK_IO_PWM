@@ -135,12 +135,9 @@ void DataProcess(void)
 //						ShortCircuit=0;
 //				}
 //		}
-		
-		
-		
 
-		FB_Flag = 0;
-			
+		//FB_Flag = 0;
+			//CurrentPWM = PWMY;
 		if(KeyIndex<1)   /*小于1则，KeyIndex =0 没按键响应，当KeyIndex>=1时，则按键过SET按键*/
 		{
 			/*根据FB电平高低判断RegisterA*/
@@ -177,7 +174,6 @@ void DataProcess(void)
 				MARK_Mode_SelfLearning();//MARK MODE
 			}
 		}
-
 		/*FB Flag*/
 		FB_Flag = Get_FB_Flag();
 		/*按键扫描*/
@@ -360,8 +356,11 @@ void MARK_PWM_OUT(PWM_Number PWM)
 		PWM1_OFF;	
 		SX[MAK_PWMx_y_z_TotalCounter] = selfADCValue[MAK_PWMx_y_z_Counter++];
 		MAK_PWMx_y_z_TotalCounter++;
-		while(TIM_GetCounter(MainTIMER)<PWM1_HIGH);//一组累加完成，等待
-		if(MAK_PWMx_y_z_TotalCounter>3)  //4组，12个数据完成
+		if(MAK_PWMx_y_z_TotalCounter<4)
+		{
+			while(TIM_GetCounter(MainTIMER)<PWM1_HIGH);//一组累加完成，等待
+		}
+		else if(MAK_PWMx_y_z_TotalCounter>3)  //4组，12个数据完成
 		{
 			ADCIndex = 0;
 			MAK_PWMx_y_z_TotalCounter = 0;
@@ -386,15 +385,15 @@ void MARK_PWM_OUT(PWM_Number PWM)
 				DX_Min = 4095;
 			}
 			
-				if(SMARK > MAKCurrentThreshold+DX/2)
+				if(SMARK > MAKCurrentThreshold*7/8 && SMARK < MAKCurrentThreshold*9/8 )
 				{
 					RegisterA = 1;
 				}
-				else if(SMARK < MAKCurrentThreshold- DX -150)
+				else if(SMARK <=MAKCurrentThreshold*7/8- DX -120 || SMARK>=MAKCurrentThreshold*9/8+DX+120)
 				{
 					RegisterA = 0;
 				}
-
+				while(TIM_GetCounter(MainTIMER)<PWM1_HIGH);//一组累加完成，等待
 		}
 	}
 		
@@ -416,8 +415,11 @@ void MARK_PWM_OUT(PWM_Number PWM)
 		PWM1_OFF;	
 		SX[MAK_PWMx_y_z_TotalCounter] = selfADCValue[MAK_PWMx_y_z_Counter++];
 		MAK_PWMx_y_z_TotalCounter++;
-		while(TIM_GetCounter(MainTIMER)<PWM1_HIGH);//一组累加完成，等待
-		if(MAK_PWMx_y_z_TotalCounter>3)  //4组，12个数据完成
+		if(MAK_PWMx_y_z_TotalCounter<4)
+		{
+			while(TIM_GetCounter(MainTIMER)<PWM1_HIGH);//一组累加完成，等待
+		}
+		else if(MAK_PWMx_y_z_TotalCounter>3)  //4组，12个数据完成
 		{
 			ADCIndex = 0;
 			MAK_PWMx_y_z_TotalCounter = 0;
@@ -442,15 +444,15 @@ void MARK_PWM_OUT(PWM_Number PWM)
 				DX_Min = 4095;
 			}
 
-				if(SMARK > MAKCurrentThreshold+DX/2)
+				if(SMARK > MAKCurrentThreshold*7/8 && SMARK < MAKCurrentThreshold*9/8 )
 				{
 					RegisterA = 1;
 				}
-				else if(SMARK < MAKCurrentThreshold- DX -150)
+				else if(SMARK <=MAKCurrentThreshold*7/8- DX -120 || SMARK>=MAKCurrentThreshold*9/8+DX+120)
 				{
 					RegisterA = 0;
 				}
-
+				while(TIM_GetCounter(MainTIMER)<PWM1_HIGH);//一组累加完成，等待
 		}
 	}
 	
@@ -472,8 +474,11 @@ void MARK_PWM_OUT(PWM_Number PWM)
 		PWM1_OFF;	
 		SX[MAK_PWMx_y_z_TotalCounter] = selfADCValue[MAK_PWMx_y_z_Counter++];
 		MAK_PWMx_y_z_TotalCounter++;
-		while(TIM_GetCounter(MainTIMER)<PWM1_HIGH);//一组累加完成，等待
-		if(MAK_PWMx_y_z_TotalCounter>3)  //4组，12个数据完成
+		if(MAK_PWMx_y_z_TotalCounter<4)
+		{
+			while(TIM_GetCounter(MainTIMER)<PWM1_HIGH);//一组累加完成，等待
+		}
+		else if(MAK_PWMx_y_z_TotalCounter>3)  //4组，12个数据完成
 		{
 			ADCIndex = 0;
 			MAK_PWMx_y_z_TotalCounter = 0;
@@ -497,15 +502,15 @@ void MARK_PWM_OUT(PWM_Number PWM)
 				DX_Max = 0;
 				DX_Min = 4095;
 			}	
-				if(SMARK > MAKCurrentThreshold+DX/2)
+				if(SMARK > MAKCurrentThreshold*7/8 && SMARK < MAKCurrentThreshold*9/8 )
 				{
 					RegisterA = 1;
 				}
-				else if(SMARK < MAKCurrentThreshold- DX -150)
+				else if(SMARK <=MAKCurrentThreshold*7/8- DX -120 || SMARK>=MAKCurrentThreshold*9/8+DX+120)
 				{
 					RegisterA = 0;
 				}
-
+				while(TIM_GetCounter(MainTIMER)<PWM1_HIGH);//一组累加完成，等待
 		}
 	}
 	
@@ -557,12 +562,12 @@ void  SET_GOODBAD(void)
 	}
 	else if(FB_Flag==0)
 	{
-		if(SMARK>200)
+		if(SMARK>300)
 		{
 			SetOut(RegisterA);
 			GPIO_WriteBit(GOODBAD_GPIO_Port,GOODBAD_Pin,Bit_SET); 
 		}
-		else if(SMARK<=200)
+		else if(SMARK<=300)
 		{
 			if(GoodBadTime>=500)
 			{
@@ -601,7 +606,7 @@ void  MARK_Mode_SelfLearning(void)
 	uint8_t SelfLearn_PWMx_y_zTotalCounter = 0;
 	uint8_t SelfLearn_PWMx_y_z_Counter = 0;
 
-	while(SelfLearn_PWMx_y_zTotalCounter<4)
+	while(SelfLearn_PWMx_y_zTotalCounter<3)
 	{
 		CI_PWM_OUT(); 
 		SX[SelfLearn_PWMx_y_zTotalCounter] = selfADCValue[SelfLearn_PWMx_y_z_Counter++];
@@ -611,6 +616,11 @@ void  MARK_Mode_SelfLearning(void)
 		//scan_key(); //按键扫面
 		while(TIM_GetCounter(MainTIMER)<PWM1_HIGH);//一组累加完成，等待
 	}
+		CI_PWM_OUT(); 
+		SX[SelfLearn_PWMx_y_zTotalCounter] = selfADCValue[SelfLearn_PWMx_y_z_Counter++];
+		SY[SelfLearn_PWMx_y_zTotalCounter] = selfADCValue[SelfLearn_PWMx_y_z_Counter++];
+		SZ[SelfLearn_PWMx_y_zTotalCounter] = selfADCValue[SelfLearn_PWMx_y_z_Counter++];
+		SelfLearn_PWMx_y_zTotalCounter++;	
 	/*4组，12个数据完成*/
 			ADCIndex = 0;
 			SelfLearn_PWMx_y_zTotalCounter = 0;
@@ -670,15 +680,16 @@ void  MARK_Mode_SelfLearning(void)
 						WriteFlash(MAKCurrentThreshold_FLASH_DATA_ADDRESS,MAKCurrentThreshold);
 						WriteFlash(CurrentPWM_FLASH_DATA_ADDRESS,CurrentPWM);
 					}
-					else	if(BIG==Y)
+					else	if(BIG==Z)
 					{
 						MAKCurrentThreshold = SZA_B[0];
 						CurrentPWM = PWMZ;
 						WriteFlash(MAKCurrentThreshold_FLASH_DATA_ADDRESS,MAKCurrentThreshold);
 						WriteFlash(CurrentPWM_FLASH_DATA_ADDRESS,CurrentPWM);
 					}	
-		}
-			KeyTime = 0; //清楚按键标记
+		}	
+		KeyTime = 0; //清楚按键标记
+		while(TIM_GetCounter(MainTIMER)<PWM1_HIGH);//一组累加完成，等待
 }
 
 /*CI_Mode_SelfLearning*/
@@ -687,7 +698,7 @@ void CI_Mode_SelfLearning(void)
 {
 	uint8_t SelfLearn_PWMx_y_zTotalCounter = 0;
 	uint8_t SelfLearn_PWMx_y_z_Counter = 0;
-	while(SelfLearn_PWMx_y_zTotalCounter<4)
+	while(SelfLearn_PWMx_y_zTotalCounter<3)
 	{
 		CI_PWM_OUT(); 
 		SX[SelfLearn_PWMx_y_zTotalCounter] = selfADCValue[SelfLearn_PWMx_y_z_Counter++];
@@ -695,11 +706,19 @@ void CI_Mode_SelfLearning(void)
 		SZ[SelfLearn_PWMx_y_zTotalCounter] = selfADCValue[SelfLearn_PWMx_y_z_Counter++];
 		SelfLearn_PWMx_y_zTotalCounter++;
 
-		while(TIM_GetCounter(MainTIMER)<PWM1_HIGH);//一组累加完成，等待
+		while(TIM_GetCounter(MainTIMER)<PWM1_HIGH){}//一组累加完成，等待
 	}
-	/*4组，12个数据完成*/
+		CI_PWM_OUT(); 
+		SX[SelfLearn_PWMx_y_zTotalCounter] = selfADCValue[SelfLearn_PWMx_y_z_Counter++];
+		SY[SelfLearn_PWMx_y_zTotalCounter] = selfADCValue[SelfLearn_PWMx_y_z_Counter++];
+		SZ[SelfLearn_PWMx_y_zTotalCounter] = selfADCValue[SelfLearn_PWMx_y_z_Counter++];
+		SelfLearn_PWMx_y_zTotalCounter++;
+		while(TIM_GetCounter(MainTIMER)<PWM1_HIGH) {}  //一组累加完成，等待
+		/*4组，12个数据完成*/
 			ADCIndex = 0;
-		
+			SelfLearn_PWMx_y_zTotalCounter = 0;
+			SelfLearn_PWMx_y_z_Counter = 0;
+			
 			SXA_B[KeyIndex] = (SX[0]+SX[1]+SX[2]+SX[3])/4; //累加求平均
 			SYA_B[KeyIndex] = (SY[0]+SY[1]+SY[2]+SY[3])/4;
 			SZA_B[KeyIndex] = (SZ[0]+SZ[1]+SZ[2]+SZ[3])/4;
@@ -757,6 +776,7 @@ void CI_Mode_SelfLearning(void)
 			
 			}
 			KeyTime = 0; //清楚按键标记
+		while(TIM_GetCounter(MainTIMER)<PWM1_HIGH);//一组累加完成，等待
 }
 
 /***************************************
