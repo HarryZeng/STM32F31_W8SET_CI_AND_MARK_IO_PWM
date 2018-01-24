@@ -204,6 +204,11 @@
           <WinNumber>1</WinNumber>
           <ItemText>DX_Data,0x0A</ItemText>
         </Ww>
+        <Ww>
+          <count>7</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>SA_B[0],0x0A</ItemText>
+        </Ww>
       </WatchWindow1>
       <WatchWindow2>
         <Ww>
@@ -275,6 +280,11 @@
           <count>13</count>
           <WinNumber>2</WinNumber>
           <ItemText>CurrentPWM</ItemText>
+        </Ww>
+        <Ww>
+          <count>14</count>
+          <WinNumber>2</WinNumber>
+          <ItemText>SCI,0x0A</ItemText>
         </Ww>
       </WatchWindow2>
       <MemoryWindow1>

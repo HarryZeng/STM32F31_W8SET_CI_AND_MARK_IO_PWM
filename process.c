@@ -136,7 +136,7 @@ void DataProcess(void)
 //				}
 //		}
 
-		//FB_Flag = 0;
+		//FB_Flag = 1;
 			//CurrentPWM = PWMY;
 		if(KeyIndex<1)   /*小于1则，KeyIndex =0 没按键响应，当KeyIndex>=1时，则按键过SET按键*/
 		{
@@ -144,15 +144,12 @@ void DataProcess(void)
 			if(FB_Flag ==1)
 			{
 				CI_GetRegisterAState();
-				/*Good Bad*/
-				SET_GOODBAD();
 			}
 			else if(FB_Flag==0)
 			{
 				MARK_GetRegisterAState();
-				
-				SET_GOODBAD();
 			}
+			
 		}
 		else
 		{
@@ -174,10 +171,14 @@ void DataProcess(void)
 				MARK_Mode_SelfLearning();//MARK MODE
 			}
 		}
-		/*FB Flag*/
-		FB_Flag = Get_FB_Flag();
+
+
 		/*按键扫描*/
 		scan_key();
+		/*FB Flag*/
+		//FB_Flag = Get_FB_Flag();
+		//FB_Flag = 1;
+		//CurrentPWM = PWMX;
 		GoodBadTime++;
 	}
 }
@@ -292,16 +293,16 @@ void CI_GetRegisterAState(void)
 			else if(SCI>=1000)
 				SCI  = 1000;
 			/************DX**********/
-			DX_Data[DX_Index] = SCI;
+			DX_Data[DX_Index] = SMARK;
 			if(DX_Data[DX_Index]>DX_Max)
 				DX_Max = DX_Data[DX_Index];
 			if(DX_Data[DX_Index] < DX_Min)
 				DX_Min = DX_Data[DX_Index];
 			DX_Index++;
-			if(DX_Index>5)
+			if(DX_Index>7)
 			{
 				DX_Index = 0;
-				DX = (DX_Max - DX_Min)/4;
+				DX = DX_Max - DX_Min;
 				DX_Max = 0;
 				DX_Min = 4095;
 			}
@@ -319,7 +320,9 @@ void CI_GetRegisterAState(void)
 			else if(SCI <= SCI_Min)
 				RegisterA = 0;
 			
-			while(TIM_GetCounter(MainTIMER)<PWM1_HIGH);//一组累加完成，等待
+			SET_GOODBAD();
+			FB_Flag = Get_FB_Flag();
+			while(TIM_GetCounter(MainTIMER)<PWM1_HIGH){}//一组累加完成，等待
 			
 			//RunTime = TIM_GetCounter(MainTIMER);
 		}
@@ -393,6 +396,8 @@ void MARK_PWM_OUT(PWM_Number PWM)
 				{
 					RegisterA = 0;
 				}
+				SET_GOODBAD();
+				FB_Flag = Get_FB_Flag();
 				while(TIM_GetCounter(MainTIMER)<PWM1_HIGH);//一组累加完成，等待
 		}
 	}
@@ -452,6 +457,8 @@ void MARK_PWM_OUT(PWM_Number PWM)
 				{
 					RegisterA = 0;
 				}
+				SET_GOODBAD();
+				FB_Flag = Get_FB_Flag();
 				while(TIM_GetCounter(MainTIMER)<PWM1_HIGH);//一组累加完成，等待
 		}
 	}
@@ -510,6 +517,8 @@ void MARK_PWM_OUT(PWM_Number PWM)
 				{
 					RegisterA = 0;
 				}
+				SET_GOODBAD();
+				FB_Flag = Get_FB_Flag();
 				while(TIM_GetCounter(MainTIMER)<PWM1_HIGH);//一组累加完成，等待
 		}
 	}
@@ -543,14 +552,14 @@ uint8_t Get_FB_Flag(void)
 void  SET_GOODBAD(void)
 {
 	uint8_t  GOODBAD_STATE;
-	if(FB_Flag)
+	if(FB_Flag==1)
 	{
-		if(SA_B[0]>=300)
+		if(SCI>=500)
 		{
 			SetOut(RegisterA);
 			GPIO_WriteBit(GOODBAD_GPIO_Port,GOODBAD_Pin,Bit_SET); //读取KG的值
 		}
-		else if(SA_B[0]<300)
+		else if(SCI<500)
 		{
 			if(GoodBadTime>=500)
 			{
