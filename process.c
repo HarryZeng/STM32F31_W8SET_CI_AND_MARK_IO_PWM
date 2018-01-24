@@ -554,14 +554,14 @@ void  SET_GOODBAD(void)
 	uint8_t  GOODBAD_STATE;
 	if(FB_Flag==1)
 	{
-		if(SCI>=500)
+		if(S_RUN_TOTAL>=500)
 		{
 			SetOut(RegisterA);
 			GPIO_WriteBit(GOODBAD_GPIO_Port,GOODBAD_Pin,Bit_SET); //¶ÁÈ¡KGµÄÖµ
 		}
-		else if(SCI<500)
+		else if(S_RUN_TOTAL<500)
 		{
-			if(GoodBadTime>=500)
+			if(GoodBadTime>=4100)
 			{
 				GoodBadTime = 0;
 				GPIO_WriteBit(GOODBAD_GPIO_Port, GOODBAD_Pin, (BitAction)!GPIO_ReadOutputDataBit(GOODBAD_GPIO_Port, GOODBAD_Pin));
@@ -578,7 +578,7 @@ void  SET_GOODBAD(void)
 		}
 		else if(SMARK<=300)
 		{
-			if(GoodBadTime>=500)
+			if(GoodBadTime>=4100)
 			{
 				GoodBadTime = 0;
 				GPIO_WriteBit(GOODBAD_GPIO_Port, GOODBAD_Pin, (BitAction)!GPIO_ReadOutputDataBit(GOODBAD_GPIO_Port, GOODBAD_Pin));

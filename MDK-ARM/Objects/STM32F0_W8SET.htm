@@ -3,7 +3,7 @@
 <title>Static Call Graph - [.\Objects\STM32F0_W8SET.axf]</title></head>
 <body><HR>
 <H1>Static Call Graph for image .\Objects\STM32F0_W8SET.axf</H1><HR>
-<BR><P>#&#060CALLGRAPH&#062# ARM Linker, 5050106: Last Updated: Wed Jan 24 15:33:22 2018
+<BR><P>#&#060CALLGRAPH&#062# ARM Linker, 5050106: Last Updated: Wed Jan 24 16:24:51 2018
 <BR><P>
 <H3>Maximum Stack Usage =         92 bytes + Unknown(Cycles, Untraceable Function Pointers)</H3><H3>
 Call chain for Maximum Stack Depth:</H3>
@@ -211,11 +211,13 @@ Global Symbols
 </UL>
 
 <P><STRONG><a name="[38]"></a>__aeabi_cfcmple</STRONG> (Thumb, 20 bytes, Stack size 0 bytes, cfcmple.o(.text))
-<BR><BR>[Called By]<UL><LI><a href="#[33]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;CI_GetRegisterAState
+<BR><BR>[Called By]<UL><LI><a href="#[39]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;SET_GOODBAD
+<LI><a href="#[33]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;CI_GetRegisterAState
 </UL>
 
 <P><STRONG><a name="[59]"></a>__aeabi_cfrcmple</STRONG> (Thumb, 20 bytes, Stack size 0 bytes, cfrcmple.o(.text))
-<BR><BR>[Called By]<UL><LI><a href="#[47]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;MARK_Mode_SelfLearning
+<BR><BR>[Called By]<UL><LI><a href="#[39]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;SET_GOODBAD
+<LI><a href="#[47]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;MARK_Mode_SelfLearning
 </UL>
 
 <P><STRONG><a name="[8b]"></a>__I$use$fp</STRONG> (Thumb, 0 bytes, Stack size 0 bytes, iusefp.o(.text), UNUSED)
@@ -725,7 +727,9 @@ Global Symbols
 <P><STRONG><a name="[39]"></a>SET_GOODBAD</STRONG> (Thumb, 242 bytes, Stack size 8 bytes, process.o(i.SET_GOODBAD))
 <BR><BR>[Stack]<UL><LI>Max Depth = 16<LI>Call Chain = SET_GOODBAD &rArr; SetOut
 </UL>
-<BR>[Calls]<UL><LI><a href="#[67]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;SetOut
+<BR>[Calls]<UL><LI><a href="#[59]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__aeabi_cfrcmple
+<LI><a href="#[38]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;__aeabi_cfcmple
+<LI><a href="#[67]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;SetOut
 <LI><a href="#[3f]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;GPIO_WriteBit
 <LI><a href="#[68]">&gt;&gt;</a>&nbsp;&nbsp;&nbsp;GPIO_ReadOutputDataBit
 </UL>
