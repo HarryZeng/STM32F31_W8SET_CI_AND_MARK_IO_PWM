@@ -43,8 +43,8 @@ uint32_t 		ShortCircuitTimer=0;
 uint32_t   ShortCircuitCounter = 0;
 uint32_t   ShortCircuitLastTime = 0;
 /*状态变量*/
-uint8_t RegisterA;
-uint8_t RegisterB = 0;
+uint8_t RegisterA = 0;
+uint8_t RegisterA_Comfirm = 0;
 uint8_t OUT;
 
 	uint32_t SX[4],SY[4],SZ[4];
@@ -154,6 +154,7 @@ void DataProcess(void)
 		else
 		{
 			CI_PWM_OUT();
+			IWDG_ReloadCounter();
 			while(TIM_GetCounter(MainTIMER)<PWM1_HIGH);//一组累加完成，等待
 		}
 		
@@ -232,7 +233,8 @@ extern int16_t  RunTime;
 extern uint8_t ADCIndex;
 uint8_t CI_PWMx_y_z_Counter = 0;
 uint8_t CI_PWMx_y_z_TotalCounter = 0;
-
+uint8_t RegisterA_1Counter = 0;
+uint8_t RegisterA_0Counter = 0;
 
 void CI_GetRegisterAState(void)
 {
@@ -310,16 +312,33 @@ void CI_GetRegisterAState(void)
 			/***********RegisterA***********/
 			
 			SCI_Max = CICurrentThreshold + DX/2;
-			SCI_Min = CICurrentThreshold - DX - 100; 
+			SCI_Min = CICurrentThreshold - DX - 120; 
 			
 			if(SCI_Min<10)
 				 SCI_Min= 10;
 			
+			/*判断SCI的范围，并输出RegisterA的值*/
 			if(SCI >= SCI_Max)
-				RegisterA = 1;
+			{
+				RegisterA_0Counter = 0;
+				RegisterA_1Counter++;
+				if(RegisterA_1Counter>=4)
+				{
+					RegisterA_1Counter = 0;
+					RegisterA = 1;
+				}
+			}
 			else if(SCI <= SCI_Min)
-				RegisterA = 0;
-			
+			{
+				RegisterA_1Counter = 0;
+				RegisterA_0Counter++;
+				if(RegisterA_0Counter>=4)
+				{
+					RegisterA_0Counter = 0;
+					RegisterA = 0;
+				}
+			}
+			IWDG_ReloadCounter();//看门狗喂狗
 			SET_GOODBAD();
 			FB_Flag = Get_FB_Flag();
 			while(TIM_GetCounter(MainTIMER)<PWM1_HIGH){}//一组累加完成，等待
@@ -388,14 +407,27 @@ void MARK_PWM_OUT(PWM_Number PWM)
 				DX_Min = 4095;
 			}
 			
-				if(SMARK > MAKCurrentThreshold*7/8 && SMARK < MAKCurrentThreshold*9/8 )
+				if(SMARK > MAKCurrentThreshold*6/8 && SMARK < MAKCurrentThreshold*9/8 )
 				{
-					RegisterA = 1;
+						RegisterA_0Counter = 0;
+						RegisterA_1Counter++;
+						if(RegisterA_1Counter>=4)
+						{
+							RegisterA_1Counter = 0;
+							RegisterA = 1;
+						}
 				}
-				else if(SMARK <=MAKCurrentThreshold*7/8- DX -120 || SMARK>=MAKCurrentThreshold*9/8+DX+120)
+				else if(SMARK <=MAKCurrentThreshold*6/8- DX -100 || SMARK>=MAKCurrentThreshold*9/8+DX+100)
 				{
-					RegisterA = 0;
+						RegisterA_1Counter = 0;
+						RegisterA_0Counter++;
+						if(RegisterA_0Counter>=4)
+						{
+							RegisterA_0Counter = 0;
+							RegisterA = 0;
+						}
 				}
+				IWDG_ReloadCounter();
 				SET_GOODBAD();
 				FB_Flag = Get_FB_Flag();
 				while(TIM_GetCounter(MainTIMER)<PWM1_HIGH);//一组累加完成，等待
@@ -449,14 +481,27 @@ void MARK_PWM_OUT(PWM_Number PWM)
 				DX_Min = 4095;
 			}
 
-				if(SMARK > MAKCurrentThreshold*7/8 && SMARK < MAKCurrentThreshold*9/8 )
+				if(SMARK > MAKCurrentThreshold*6/8 && SMARK < MAKCurrentThreshold*9/8 )
 				{
-					RegisterA = 1;
+						RegisterA_0Counter = 0;
+						RegisterA_1Counter++;
+						if(RegisterA_1Counter>=4)
+						{
+							RegisterA_1Counter = 0;
+							RegisterA = 1;
+						}
 				}
-				else if(SMARK <=MAKCurrentThreshold*7/8- DX -120 || SMARK>=MAKCurrentThreshold*9/8+DX+120)
+				else if(SMARK <=MAKCurrentThreshold*6/8- DX -100 || SMARK>=MAKCurrentThreshold*9/8+DX+100)
 				{
-					RegisterA = 0;
+						RegisterA_1Counter = 0;
+						RegisterA_0Counter++;
+						if(RegisterA_0Counter>=4)
+						{
+							RegisterA_0Counter = 0;
+							RegisterA = 0;
+						}
 				}
+				IWDG_ReloadCounter();
 				SET_GOODBAD();
 				FB_Flag = Get_FB_Flag();
 				while(TIM_GetCounter(MainTIMER)<PWM1_HIGH);//一组累加完成，等待
@@ -509,14 +554,27 @@ void MARK_PWM_OUT(PWM_Number PWM)
 				DX_Max = 0;
 				DX_Min = 4095;
 			}	
-				if(SMARK > MAKCurrentThreshold*7/8 && SMARK < MAKCurrentThreshold*9/8 )
+				if(SMARK > MAKCurrentThreshold*6/8 && SMARK < MAKCurrentThreshold*9/8 )
 				{
-					RegisterA = 1;
+						RegisterA_0Counter = 0;
+						RegisterA_1Counter++;
+						if(RegisterA_1Counter>=4)
+						{
+							RegisterA_1Counter = 0;
+							RegisterA = 1;
+						}
 				}
-				else if(SMARK <=MAKCurrentThreshold*7/8- DX -120 || SMARK>=MAKCurrentThreshold*9/8+DX+120)
+				else if(SMARK <=MAKCurrentThreshold*6/8- DX -100 || SMARK>=MAKCurrentThreshold*9/8+DX+100)
 				{
-					RegisterA = 0;
+						RegisterA_1Counter = 0;
+						RegisterA_0Counter++;
+						if(RegisterA_0Counter>=4)
+						{
+							RegisterA_0Counter = 0;
+							RegisterA = 0;
+						}
 				}
+				IWDG_ReloadCounter();
 				SET_GOODBAD();
 				FB_Flag = Get_FB_Flag();
 				while(TIM_GetCounter(MainTIMER)<PWM1_HIGH);//一组累加完成，等待
@@ -571,12 +629,12 @@ void  SET_GOODBAD(void)
 	}
 	else if(FB_Flag==0)
 	{
-		if(SMARK>300)
+		if(SMARK>140)
 		{
 			SetOut(RegisterA);
 			GPIO_WriteBit(GOODBAD_GPIO_Port,GOODBAD_Pin,Bit_SET); 
 		}
-		else if(SMARK<=300)
+		else if(SMARK<=140)
 		{
 			if(GoodBadTime>=4100)
 			{

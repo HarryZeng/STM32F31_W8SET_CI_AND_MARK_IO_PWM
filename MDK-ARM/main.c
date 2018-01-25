@@ -757,6 +757,21 @@ void ProgramCheck(void)
 	}
 }
 
+void IWDG_Config(void)
+{
+	if(RCC_GetFlagStatus(RCC_FLAG_IWDGRST) != RESET)
+	{
+		RCC_ClearFlag();
+	}
+	
+	IWDG_WriteAccessCmd(IWDG_WriteAccess_Enable);
+	IWDG_SetPrescaler(IWDG_Prescaler_64);
+	IWDG_SetReload(40000/20);
+	IWDG_ReloadCounter();
+	
+	IWDG_Enable();
+}
+
 /***************主函数***************/
 int main(void)
 {
@@ -766,10 +781,10 @@ int main(void)
 		BSP_init();
 		RCC_GetClocksFreq(&SysClock);
 		DelaymsSet(5000); 
-		
+		IWDG_Config();
 		CheckFLag = FlashCheck();
 	
-		if(1)
+		if(CheckFLag)
 		{
 			/*程序运行次数检测*/
 			ProgramCheck();
@@ -780,6 +795,6 @@ int main(void)
 			while(1)
 			{
 				checkcouter++;
-			}
-	
+			}	
 }
+
