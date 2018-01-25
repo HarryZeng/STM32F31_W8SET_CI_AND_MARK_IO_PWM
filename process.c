@@ -312,7 +312,7 @@ void CI_GetRegisterAState(void)
 			/***********RegisterA***********/
 			
 			SCI_Max = CICurrentThreshold + DX/2;
-			SCI_Min = CICurrentThreshold - DX - 120; 
+			SCI_Min = CICurrentThreshold - DX - 90; 
 			
 			if(SCI_Min<10)
 				 SCI_Min= 10;
@@ -417,7 +417,7 @@ void MARK_PWM_OUT(PWM_Number PWM)
 							RegisterA = 1;
 						}
 				}
-				else if(SMARK <=MAKCurrentThreshold*6/8- DX -100 || SMARK>=MAKCurrentThreshold*9/8+DX+100)
+				else if(SMARK <=MAKCurrentThreshold*6/8- DX -60 || SMARK>=MAKCurrentThreshold*9/8+DX+60)
 				{
 						RegisterA_1Counter = 0;
 						RegisterA_0Counter++;
@@ -491,7 +491,7 @@ void MARK_PWM_OUT(PWM_Number PWM)
 							RegisterA = 1;
 						}
 				}
-				else if(SMARK <=MAKCurrentThreshold*6/8- DX -100 || SMARK>=MAKCurrentThreshold*9/8+DX+100)
+				else if(SMARK <=MAKCurrentThreshold*6/8- DX -60 || SMARK>=MAKCurrentThreshold*9/8+DX+60)
 				{
 						RegisterA_1Counter = 0;
 						RegisterA_0Counter++;
@@ -564,7 +564,7 @@ void MARK_PWM_OUT(PWM_Number PWM)
 							RegisterA = 1;
 						}
 				}
-				else if(SMARK <=MAKCurrentThreshold*6/8- DX -100 || SMARK>=MAKCurrentThreshold*9/8+DX+100)
+				else if(SMARK <=MAKCurrentThreshold*6/8- DX -60 || SMARK>=MAKCurrentThreshold*9/8+DX+60)
 				{
 						RegisterA_1Counter = 0;
 						RegisterA_0Counter++;
@@ -733,6 +733,7 @@ void  MARK_Mode_SelfLearning(void)
 				/*找最大值,计算阈值，判断PWM通道*/
 					BIG=(X>Y)?X:Y;
 					BIG=(BIG>Z)?BIG:Z;
+					BIG= Y; //Debug 2018-1-25
 					if(BIG==X)
 					{
 						MAKCurrentThreshold = SXA_B[0];
