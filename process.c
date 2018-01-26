@@ -87,9 +87,15 @@ int32_t CX,CY,CZ;
 int32_t SCI,SMARK;
 int32_t SCI_Min,SCI_Max;
 int32_t DX_Data[8];
-int16_t DX_Max = 0,DX_Min=1000;
+int16_t DX_Max = 0,DX_Min=4095;
 uint8_t DX_Index = 0;
 int DX=0;
+
+int32_t DX2_Data[4];
+int16_t DX2_Max = 0,DX2_Min=4095;
+uint8_t DX2_Index = 0;
+int DX2=0;
+
 uint16_t  GoodBadTime=0;
 /***********************************
 *FLASH 字节定义
@@ -155,6 +161,7 @@ void DataProcess(void)
 		{
 			CI_PWM_OUT();
 			IWDG_ReloadCounter();
+			scan_key();
 			while(TIM_GetCounter(MainTIMER)<PWM1_HIGH);//一组累加完成，等待
 		}
 		
@@ -175,7 +182,7 @@ void DataProcess(void)
 
 
 		/*按键扫描*/
-		scan_key();
+		//scan_key();
 		/*FB Flag*/
 		//FB_Flag = Get_FB_Flag();
 		//FB_Flag = 1;
@@ -295,7 +302,7 @@ void CI_GetRegisterAState(void)
 			else if(SCI>=1000)
 				SCI  = 1000;
 			/************DX**********/
-			DX_Data[DX_Index] = SMARK;
+			DX_Data[DX_Index] = SCI;
 			if(DX_Data[DX_Index]>DX_Max)
 				DX_Max = DX_Data[DX_Index];
 			if(DX_Data[DX_Index] < DX_Min)
@@ -308,6 +315,21 @@ void CI_GetRegisterAState(void)
 				DX_Max = 0;
 				DX_Min = 4095;
 			}
+			
+			/************DX2*************/
+			DX2_Data[DX2_Index] = SCI;
+			if(DX2_Data[DX2_Index]>DX2_Max)
+				DX2_Max = DX2_Data[DX2_Index];
+			if(DX2_Data[DX2_Index] < DX2_Min)
+				DX2_Min = DX2_Data[DX2_Index];
+			DX2_Index++;
+			if(DX2_Index>3)
+			{
+				DX2_Index = 0;
+				DX2 = DX2_Max - DX2_Min;
+				DX2_Max = 0;
+				DX2_Min = 4095;
+			}			
 
 			/***********RegisterA***********/
 			
@@ -341,6 +363,7 @@ void CI_GetRegisterAState(void)
 			IWDG_ReloadCounter();//看门狗喂狗
 			SET_GOODBAD();
 			FB_Flag = Get_FB_Flag();
+			scan_key();
 			while(TIM_GetCounter(MainTIMER)<PWM1_HIGH){}//一组累加完成，等待
 			
 			//RunTime = TIM_GetCounter(MainTIMER);
@@ -358,6 +381,7 @@ uint8_t MAK_PWMx_y_z_TotalCounter = 0;
 
 void MARK_PWM_OUT(PWM_Number PWM)
 {
+	int32_t SMARK_Min;
 	/*开启对应的PWM通道*/
 
 	if(PWM ==  PWMX)
@@ -406,8 +430,26 @@ void MARK_PWM_OUT(PWM_Number PWM)
 				DX_Max = 0;
 				DX_Min = 4095;
 			}
+			/************DX2*************/
+			DX2_Data[DX2_Index] = SMARK;
+			if(DX2_Data[DX2_Index]>DX2_Max)
+				DX2_Max = DX2_Data[DX2_Index];
+			if(DX2_Data[DX2_Index] < DX2_Min)
+				DX2_Min = DX2_Data[DX2_Index];
+			DX2_Index++;
+			if(DX2_Index>3)
+			{
+				DX2_Index = 0;
+				DX2 = DX2_Max - DX2_Min;
+				DX2_Max = 0;
+				DX2_Min = 4095;
+			}	
 			
-				if(SMARK > MAKCurrentThreshold*6/8 && SMARK < MAKCurrentThreshold*9/8 )
+			SMARK_Min = MAKCurrentThreshold*7/8- DX -50 ;
+			if(SMARK_Min<0)
+				SMARK_Min = 0;
+			
+				if(SMARK > MAKCurrentThreshold*7/8 && SMARK < MAKCurrentThreshold*9/8 )
 				{
 						RegisterA_0Counter = 0;
 						RegisterA_1Counter++;
@@ -417,7 +459,7 @@ void MARK_PWM_OUT(PWM_Number PWM)
 							RegisterA = 1;
 						}
 				}
-				else if(SMARK <=MAKCurrentThreshold*6/8- DX -60 || SMARK>=MAKCurrentThreshold*9/8+DX+60)
+				else if(SMARK <= SMARK_Min || SMARK>=MAKCurrentThreshold*9/8+DX+50)
 				{
 						RegisterA_1Counter = 0;
 						RegisterA_0Counter++;
@@ -430,6 +472,7 @@ void MARK_PWM_OUT(PWM_Number PWM)
 				IWDG_ReloadCounter();
 				SET_GOODBAD();
 				FB_Flag = Get_FB_Flag();
+				scan_key();
 				while(TIM_GetCounter(MainTIMER)<PWM1_HIGH);//一组累加完成，等待
 		}
 	}
@@ -480,8 +523,26 @@ void MARK_PWM_OUT(PWM_Number PWM)
 				DX_Max = 0;
 				DX_Min = 4095;
 			}
-
-				if(SMARK > MAKCurrentThreshold*6/8 && SMARK < MAKCurrentThreshold*9/8 )
+			/************DX2*************/
+			DX2_Data[DX2_Index] = SMARK;
+			if(DX2_Data[DX2_Index]>DX2_Max)
+				DX2_Max = DX2_Data[DX2_Index];
+			if(DX2_Data[DX2_Index] < DX2_Min)
+				DX2_Min = DX2_Data[DX2_Index];
+			DX2_Index++;
+			if(DX2_Index>3)
+			{
+				DX2_Index = 0;
+				DX2 = DX2_Max - DX2_Min;
+				DX2_Max = 0;
+				DX2_Min = 4095;
+			}	
+			
+			SMARK_Min = MAKCurrentThreshold*7/8- DX -50 ;
+			if(SMARK_Min<0)
+				SMARK_Min = 0;
+			
+				if(SMARK > MAKCurrentThreshold*7/8 && SMARK < MAKCurrentThreshold*9/8 )
 				{
 						RegisterA_0Counter = 0;
 						RegisterA_1Counter++;
@@ -491,7 +552,7 @@ void MARK_PWM_OUT(PWM_Number PWM)
 							RegisterA = 1;
 						}
 				}
-				else if(SMARK <=MAKCurrentThreshold*6/8- DX -60 || SMARK>=MAKCurrentThreshold*9/8+DX+60)
+				else if(SMARK <= SMARK_Min || SMARK>=MAKCurrentThreshold*9/8+DX+50)
 				{
 						RegisterA_1Counter = 0;
 						RegisterA_0Counter++;
@@ -504,6 +565,7 @@ void MARK_PWM_OUT(PWM_Number PWM)
 				IWDG_ReloadCounter();
 				SET_GOODBAD();
 				FB_Flag = Get_FB_Flag();
+				scan_key();
 				while(TIM_GetCounter(MainTIMER)<PWM1_HIGH);//一组累加完成，等待
 		}
 	}
@@ -554,7 +616,26 @@ void MARK_PWM_OUT(PWM_Number PWM)
 				DX_Max = 0;
 				DX_Min = 4095;
 			}	
-				if(SMARK > MAKCurrentThreshold*6/8 && SMARK < MAKCurrentThreshold*9/8 )
+			/************DX2*************/
+			DX2_Data[DX2_Index] = SMARK;
+			if(DX2_Data[DX2_Index]>DX2_Max)
+				DX2_Max = DX2_Data[DX2_Index];
+			if(DX2_Data[DX2_Index] < DX2_Min)
+				DX2_Min = DX2_Data[DX2_Index];
+			DX2_Index++;
+			if(DX2_Index>3)
+			{
+				DX2_Index = 0;
+				DX2 = DX2_Max - DX2_Min;
+				DX2_Max = 0;
+				DX2_Min = 4095;
+			}	
+			
+			SMARK_Min = MAKCurrentThreshold*7/8- DX -50 ;
+			if(SMARK_Min<0)
+				SMARK_Min = 0;
+			
+				if(SMARK > MAKCurrentThreshold*7/8 && SMARK < MAKCurrentThreshold*9/8 )
 				{
 						RegisterA_0Counter = 0;
 						RegisterA_1Counter++;
@@ -564,7 +645,7 @@ void MARK_PWM_OUT(PWM_Number PWM)
 							RegisterA = 1;
 						}
 				}
-				else if(SMARK <=MAKCurrentThreshold*6/8- DX -60 || SMARK>=MAKCurrentThreshold*9/8+DX+60)
+				else if(SMARK <= SMARK_Min || SMARK>=MAKCurrentThreshold*9/8+DX+50)
 				{
 						RegisterA_1Counter = 0;
 						RegisterA_0Counter++;
@@ -577,6 +658,7 @@ void MARK_PWM_OUT(PWM_Number PWM)
 				IWDG_ReloadCounter();
 				SET_GOODBAD();
 				FB_Flag = Get_FB_Flag();
+				scan_key();
 				while(TIM_GetCounter(MainTIMER)<PWM1_HIGH);//一组累加完成，等待
 		}
 	}
@@ -612,36 +694,42 @@ void  SET_GOODBAD(void)
 	uint8_t  GOODBAD_STATE;
 	if(FB_Flag==1)
 	{
-		if(S_RUN_TOTAL>=500)
+		if(DX2<=80)
 		{
-			SetOut(RegisterA);
-			GPIO_WriteBit(GOODBAD_GPIO_Port,GOODBAD_Pin,Bit_SET); //读取KG的值
-		}
-		else if(S_RUN_TOTAL<500)
-		{
-			if(GoodBadTime>=4100)
+			if(S_RUN_TOTAL>=500)
 			{
-				GoodBadTime = 0;
-				GPIO_WriteBit(GOODBAD_GPIO_Port, GOODBAD_Pin, (BitAction)!GPIO_ReadOutputDataBit(GOODBAD_GPIO_Port, GOODBAD_Pin));
+				SetOut(RegisterA);
+				GPIO_WriteBit(GOODBAD_GPIO_Port,GOODBAD_Pin,Bit_SET); //读取KG的值
 			}
-			GPIO_WriteBit(OUT_GPIO_Port, OUT_Pin, Bit_RESET);
+			else if(S_RUN_TOTAL<500)
+			{
+				if(GoodBadTime>=4100)
+				{
+					GoodBadTime = 0;
+					GPIO_WriteBit(GOODBAD_GPIO_Port, GOODBAD_Pin, (BitAction)!GPIO_ReadOutputDataBit(GOODBAD_GPIO_Port, GOODBAD_Pin));
+				}
+				GPIO_WriteBit(OUT_GPIO_Port, OUT_Pin, Bit_RESET);
+			}
 		}
 	}
 	else if(FB_Flag==0)
 	{
-		if(SMARK>140)
+		if(DX2<=80)
 		{
-			SetOut(RegisterA);
-			GPIO_WriteBit(GOODBAD_GPIO_Port,GOODBAD_Pin,Bit_SET); 
-		}
-		else if(SMARK<=140)
-		{
-			if(GoodBadTime>=4100)
+			if(SMARK>140)
 			{
-				GoodBadTime = 0;
-				GPIO_WriteBit(GOODBAD_GPIO_Port, GOODBAD_Pin, (BitAction)!GPIO_ReadOutputDataBit(GOODBAD_GPIO_Port, GOODBAD_Pin));
+				SetOut(RegisterA);
+				GPIO_WriteBit(GOODBAD_GPIO_Port,GOODBAD_Pin,Bit_SET); 
 			}
-			GPIO_WriteBit(OUT_GPIO_Port, OUT_Pin, Bit_RESET);
+			else if(SMARK<=140)
+			{
+				if(GoodBadTime>=4100)
+				{
+					GoodBadTime = 0;
+					GPIO_WriteBit(GOODBAD_GPIO_Port, GOODBAD_Pin, (BitAction)!GPIO_ReadOutputDataBit(GOODBAD_GPIO_Port, GOODBAD_Pin));
+				}
+				GPIO_WriteBit(OUT_GPIO_Port, OUT_Pin, Bit_RESET);
+			}
 		}
 	}
 }
@@ -731,9 +819,16 @@ void  MARK_Mode_SelfLearning(void)
 						Z = (SZA_B[1] - SZA_B[0]);
 				}
 				/*找最大值,计算阈值，判断PWM通道*/
-					BIG=(X>Y)?X:Y;
-					BIG=(BIG>Z)?BIG:Z;
-					BIG= Y; //Debug 2018-1-25
+				if(X>=Y)
+					BIG = X;
+				else
+					BIG = Y;
+				if(BIG<=Z)
+					BIG = Z;
+
+//					BIG=(X>Y)?X:Y;
+//					BIG=(BIG>Z)?BIG:Z;
+					//BIG= Y; //Debug 2018-1-25
 					if(BIG==X)
 					{
 						MAKCurrentThreshold = SXA_B[0];
@@ -757,6 +852,7 @@ void  MARK_Mode_SelfLearning(void)
 					}	
 		}	
 		KeyTime = 0; //清楚按键标记
+		scan_key();
 		while(TIM_GetCounter(MainTIMER)<PWM1_HIGH);//一组累加完成，等待
 }
 
@@ -826,9 +922,9 @@ void CI_Mode_SelfLearning(void)
 				else
 					NS_SET = SA_B[0] - SA_B[1];
 				
-				NXYZ_SET = NXSET+NYSET+NZSET;
+				NXYZ_SET = (NXSET+NYSET+NZSET)*5/4;  //2018-1-26
 				
-				CICurrentThreshold = 1000 - (NS_SET + NXYZ_SET)/2;
+				CICurrentThreshold = 1000 - (NS_SET + NXYZ_SET)/2-40;
 				
 				if(CICurrentThreshold<=200)
 						CICurrentThreshold = 200;
@@ -844,6 +940,7 @@ void CI_Mode_SelfLearning(void)
 			
 			}
 			KeyTime = 0; //清楚按键标记
+			scan_key();
 		while(TIM_GetCounter(MainTIMER)<PWM1_HIGH);//一组累加完成，等待
 }
 
