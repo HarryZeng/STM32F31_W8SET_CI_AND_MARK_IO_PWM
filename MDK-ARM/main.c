@@ -785,6 +785,7 @@ int main(void)
 		CheckFLag = FlashCheck();
 	
 		if(CheckFLag)
+		//if(1)
 		{
 			/*程序运行次数检测*/
 			ProgramCheck();

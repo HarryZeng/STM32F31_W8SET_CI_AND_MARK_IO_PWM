@@ -43,13 +43,17 @@
 #define OUT_Pin 					GPIO_Pin_12
 #define OUT_GPIO_Port 		GPIOA	 
 	 
+#define Algorithm_P				8192	 
 	 
 #define 	FLASH_START_ADDR 	 						0x08007000
 
 /*”¶≤Ó÷µ*/	
 
-	#define PWM1_HIGH  	95
+	#define PWM1_HIGH  	100
 	#define PWM1_LOW  	20
+	
+	#define PWM_C_Start  	1
+	
 	#define PWMx_HIGH  	1
 	#define PWMx_LOW  	0
 	#define PWMy_HIGH  	2
