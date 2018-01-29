@@ -43,7 +43,7 @@
 #define OUT_Pin 					GPIO_Pin_12
 #define OUT_GPIO_Port 		GPIOA	 
 	 
-#define Algorithm_P				8192	 
+#define Algorithm_P				4096	 
 	 
 #define 	FLASH_START_ADDR 	 						0x08007000
 

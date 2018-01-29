@@ -155,8 +155,8 @@ void DataProcess(void)
 				GoodBadTime = 0;
 				GPIO_WriteBit(GOODBAD_GPIO_Port, GOODBAD_Pin, (BitAction)!GPIO_ReadOutputDataBit(GOODBAD_GPIO_Port, GOODBAD_Pin));
 			}
-			while(TIM_GetCounter(MainTIMER)<PWM1_HIGH);//一组累加完成，等待
 			GoodBadTime++;
+			while(TIM_GetCounter(MainTIMER)<PWM1_HIGH);//一组累加完成，等待
 			SelfLearning();
 		}		
 	}
@@ -283,9 +283,9 @@ void CI_GetRegisterAState(void)
 			else
 				CZ_RUN = 	CZA_B[0] - CZ; 
 			
-			NS_RUN = NS_RUN/2;     //2018-1-28 /2
+			NS_RUN = NS_RUN/4;     //2018-1-28 /2  2018-1-29
 			
-			NXYZ_RUN = (CX_RUN+CY_RUN+CZ_RUN)*5/4; //2018-1-27
+			NXYZ_RUN = (CX_RUN+CY_RUN+CZ_RUN)*2; //2018-1-27  2018-1-29->3/2  ->*2
 			
 			/************SCI**********/
 			SCI = 1000 - (NS_RUN + NXYZ_RUN);  //2018-1-17  change
@@ -326,7 +326,7 @@ void CI_GetRegisterAState(void)
 			/***********RegisterA***********/
 			
 			SCI_Max = CICurrentThreshold + 0.25*DX; //2018-1-27
-			SCI_Min = CICurrentThreshold - DX - 50;    //2018-1-28 50
+			SCI_Min = CICurrentThreshold - DX - 80;    //2018-1-28 50  2018-1-29-80
 			
 			if(SCI_Min<10)
 				 SCI_Min= 10;
@@ -404,11 +404,16 @@ void MARK_PWM_OUT(PWM_Number PWM)
 			MAK_PWMx_y_z_TotalCounter = 0;
 			MAK_PWMx_y_z_Counter = 0;
 			SMARK = (SX[0]+SX[1]+SX[2]+SX[3])/4; //累加求平均
-			if(SMARK<10)
-				SMARK= 10;	
-			if(SMARK>=4095)
-				SMARK = 4095;
 			
+			/*****************************************************/
+			SMARK_Min = MAKCurrentThreshold*6/8-60;			//2018-1-29
+			if(SMARK_Min<=0) 	SMARK_Min = 0;
+			if(SMARK<=SMARK_Min)						 						//2018-1-29
+				SMARK= SMARK-1000;		
+			else if(SMARK>=MAKCurrentThreshold*10/8+60)  //2018-1-29
+				SMARK = SMARK+1000;
+			if(SMARK<=0)  SMARK = 0;										 //2018-1-29
+			/*******************************************************/
 			DX_Data[DX_Index] = SMARK;
 			if(DX_Data[DX_Index]>DX_Max)
 				DX_Max = DX_Data[DX_Index];
@@ -437,11 +442,11 @@ void MARK_PWM_OUT(PWM_Number PWM)
 				DX2_Min = 4095;
 			}	
 			
-			SMARK_Min = MAKCurrentThreshold*4/8- DX -40 ;
+			SMARK_Min = MAKCurrentThreshold*6/8- DX -40 ;
 			if(SMARK_Min<5)
 				SMARK_Min = 5;
 			
-				if(SMARK > MAKCurrentThreshold*4/8 && SMARK < MAKCurrentThreshold*10/8 )
+				if(SMARK > MAKCurrentThreshold*6/8 && SMARK < MAKCurrentThreshold*10/8 )
 				{
 						RegisterA_0Counter = 0;
 						RegisterA_1Counter++;
@@ -497,11 +502,15 @@ void MARK_PWM_OUT(PWM_Number PWM)
 			MAK_PWMx_y_z_TotalCounter = 0;
 			MAK_PWMx_y_z_Counter = 0;
 			SMARK = (SX[0]+SX[1]+SX[2]+SX[3])/4; //累加求平均
-			if(SMARK<10)
-				SMARK= 10;	
-			if(SMARK>=4095)
-				SMARK = 4095;
-			
+			/*****************************************************/
+			SMARK_Min = MAKCurrentThreshold*6/8-60;			//2018-1-29
+			if(SMARK_Min<=0) 	SMARK_Min = 0;
+			if(SMARK<=SMARK_Min)						 						//2018-1-29
+				SMARK= SMARK-1000;		
+			else if(SMARK>=MAKCurrentThreshold*10/8+60)  //2018-1-29
+				SMARK = SMARK+1000;
+			if(SMARK<=0)  SMARK = 0;										 //2018-1-29
+			/*******************************************************/
 			DX_Data[DX_Index] = SMARK;
 			if(DX_Data[DX_Index]>DX_Max)
 				DX_Max = DX_Data[DX_Index];
@@ -530,12 +539,11 @@ void MARK_PWM_OUT(PWM_Number PWM)
 				DX2_Min = 4095;
 			}	
 			
-			
-			SMARK_Min = MAKCurrentThreshold*4/8- DX -40 ;
+			SMARK_Min = MAKCurrentThreshold*6/8- DX -40 ;
 			if(SMARK_Min<5)
 				SMARK_Min = 5;
 			
-				if(SMARK > MAKCurrentThreshold*4/8 && SMARK < MAKCurrentThreshold*10/8 )
+				if(SMARK > MAKCurrentThreshold*6/8 && SMARK < MAKCurrentThreshold*10/8 )
 				{
 						RegisterA_0Counter = 0;
 						RegisterA_1Counter++;
@@ -591,11 +599,15 @@ void MARK_PWM_OUT(PWM_Number PWM)
 			MAK_PWMx_y_z_TotalCounter = 0;
 			MAK_PWMx_y_z_Counter = 0;
 			SMARK = (SX[0]+SX[1]+SX[2]+SX[3])/4; //累加求平均
-			if(SMARK<10)
-				SMARK= 10;	
-			if(SMARK>=4095)
-				SMARK = 4095;
-			
+			/*****************************************************/
+			SMARK_Min = MAKCurrentThreshold*6/8-60;			//2018-1-29
+			if(SMARK_Min<=0) 	SMARK_Min = 0;
+			if(SMARK<=SMARK_Min)						 						//2018-1-29
+				SMARK= SMARK-1000;		
+			else if(SMARK>=MAKCurrentThreshold*10/8+60)  //2018-1-29
+				SMARK = SMARK+1000;
+			if(SMARK<=0)  SMARK = 0;										 //2018-1-29
+			/*******************************************************/
 			DX_Data[DX_Index] = SMARK;
 			if(DX_Data[DX_Index]>DX_Max)
 				DX_Max = DX_Data[DX_Index];
@@ -608,7 +620,7 @@ void MARK_PWM_OUT(PWM_Number PWM)
 				DX = DX_Max - DX_Min;
 				DX_Max = 0;
 				DX_Min = 4095;
-			}	
+			}
 			/************DX2*************/
 			DX2_Data[DX2_Index] = SMARK;
 			if(DX2_Data[DX2_Index]>DX2_Max)
@@ -624,12 +636,11 @@ void MARK_PWM_OUT(PWM_Number PWM)
 				DX2_Min = 4095;
 			}	
 			
-			
-			SMARK_Min = MAKCurrentThreshold*4/8- DX -40 ;  //2018-1-28 /4*8
+			SMARK_Min = MAKCurrentThreshold*6/8- DX -40 ;
 			if(SMARK_Min<5)
 				SMARK_Min = 5;
 			
-				if(SMARK > MAKCurrentThreshold*4/8 && SMARK < MAKCurrentThreshold*10/8 )
+				if(SMARK > MAKCurrentThreshold*6/8 && SMARK < MAKCurrentThreshold*10/8 )
 				{
 						RegisterA_0Counter = 0;
 						RegisterA_1Counter++;
@@ -917,11 +928,11 @@ void CI_Mode_SelfLearning(void)
 				else
 					NS_SET = SA_B[0] - SA_B[1];
 				
-				NS_SET = NS_SET/2;  //2018-1-28
+				NS_SET = NS_SET/4;  //2018-1-28  2018-1-29->/4
 				
-				NXYZ_SET = (NXSET+NYSET+NZSET)*5/4;  //2018-1-26
+				NXYZ_SET = (NXSET+NYSET+NZSET)*2;  //2018-1-26   2018-1-29->3/2  ->*2
 				
-				CICurrentThreshold = 1000 - (NS_SET + NXYZ_SET)/2-100; //2018-1-27
+				CICurrentThreshold = 1000 - (NS_SET + NXYZ_SET)/2-40; //2018-1-29->-40
 				
 				if(CICurrentThreshold<=100)
 						CICurrentThreshold = 100;  //2018-1-27
