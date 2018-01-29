@@ -132,22 +132,6 @@ void DataProcess(void)
 	
 	while(1)
 	{
-		/*短路保护判断*/
-		//ShortCircuitProtection();
-		
-//		while(ConfirmShortCircuit)
-//		{
-//				GPIO_WriteBit(OUT_GPIO_Port, OUT_Pin, Bit_RESET); /*发现短路，将OUT引脚拉低*/
-//				if((ShortCircuitLastTime - ShortCircuitTimer)>=1000)
-//				{
-//						ConfirmShortCircuit = 0;
-//						ShortCircuitCounter = 0;
-//						ShortCircuit=0;
-//				}
-//		}
-
-		//FB_Flag = 1;
-			//CurrentPWM = PWMY;
 		if(KeyIndex<1&&KeyTime<=0)   /*小于1则，KeyIndex =0 没按键响应，当KeyIndex>=1时，则按键过SET按键*/
 		{
 			/*根据FB电平高低判断RegisterA*/
@@ -172,33 +156,9 @@ void DataProcess(void)
 				GPIO_WriteBit(GOODBAD_GPIO_Port, GOODBAD_Pin, (BitAction)!GPIO_ReadOutputDataBit(GOODBAD_GPIO_Port, GOODBAD_Pin));
 			}
 			while(TIM_GetCounter(MainTIMER)<PWM1_HIGH);//一组累加完成，等待
-			
+			GoodBadTime++;
 			SelfLearning();
-		}
-		
-//		/*按键进入自学习模式*/
-//		if(KeyTime>0)  
-//		{
-//			OUTPin_STATE = GPIO_ReadInputDataBit(OUT_GPIO_Port,OUT_Pin); //读取OUT的值,用于写FLASH时，保持OUT的引脚电平不变
-//			GPIO_WriteBit(OUT_GPIO_Port, OUT_Pin, (BitAction)OUTPin_STATE);
-//			if(FB_Flag)
-//			{
-//				CI_Mode_SelfLearning();  //CI MODE
-//			}
-//			else
-//			{
-//				MARK_Mode_SelfLearning();//MARK MODE
-//			}
-//		}
-
-
-		/*按键扫描*/
-		//scan_key();
-		/*FB Flag*/
-		//FB_Flag = Get_FB_Flag();
-		//FB_Flag = 1;
-		//CurrentPWM = PWMX;
-		//GoodBadTime++;
+		}		
 	}
 }
 
