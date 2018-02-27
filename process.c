@@ -285,8 +285,11 @@ void CI_GetRegisterAState(void)
 			
 			NS_RUN = NS_RUN/4;     //2018-1-28 /2  2018-1-29
 			
-			NXYZ_RUN = (CX_RUN+CY_RUN+CZ_RUN)*2; //2018-1-27  2018-1-29->3/2  ->*2
-			
+			//NXYZ_RUN = (CX_RUN+CY_RUN+CZ_RUN)*2; //2018-1-27  2018-1-29->3/2  ->*2
+			//NXYZ_RUN = (CX_RUN+CY_RUN+CZ_RUN)*2;    //V23
+			NXYZ_RUN = (CX_RUN+CY_RUN+CZ_RUN)*2;    //V26
+			//NXYZ_RUN = (CX_RUN+CY_RUN+CZ_RUN)*4;    //V27
+			//NXYZ_RUN = (CX_RUN+CY_RUN+CZ_RUN)*3/2;    //V21
 			/************SCI**********/
 			SCI = 1000 - (NS_RUN + NXYZ_RUN);  //2018-1-17  change
 			if(SCI<=0)
@@ -326,7 +329,7 @@ void CI_GetRegisterAState(void)
 			/***********RegisterA***********/
 			
 			SCI_Max = CICurrentThreshold + 0.25*DX; //2018-1-27
-			SCI_Min = CICurrentThreshold - DX - 80;    //2018-1-28 50  2018-1-29-80
+			SCI_Min = CICurrentThreshold - DX - 50;    //2018-1-28 50  2018-1-29-80 2018-02-24-50
 			
 			if(SCI_Min<10)
 				 SCI_Min= 10;
@@ -704,12 +707,12 @@ void  SET_GOODBAD(void)
 	{
 		if(DX2<=80)
 		{
-			if(S_RUN_TOTAL>500)
+			if(S_RUN_TOTAL>180)   //2018-1-30 <180
 			{
 				SetOut(RegisterA);
 				GPIO_WriteBit(GOODBAD_GPIO_Port,GOODBAD_Pin,Bit_SET); //直接拉低
 			}
-			else if(S_RUN_TOTAL<=500)
+			else if(S_RUN_TOTAL<=180)
 			{
 				GPIO_WriteBit(GOODBAD_GPIO_Port,GOODBAD_Pin,Bit_RESET); //直接拉低
 				//GPIO_WriteBit(GOODBAD_GPIO_Port, GOODBAD_Pin, (BitAction)!GPIO_ReadOutputDataBit(GOODBAD_GPIO_Port, GOODBAD_Pin));
@@ -930,14 +933,17 @@ void CI_Mode_SelfLearning(void)
 				
 				NS_SET = NS_SET/4;  //2018-1-28  2018-1-29->/4
 				
-				NXYZ_SET = (NXSET+NYSET+NZSET)*2;  //2018-1-26   2018-1-29->3/2  ->*2
+				//NXYZ_SET = (NXSET+NYSET+NZSET)*2;  //2018-1-26   2018-1-29->3/2  ->*2
+				//NXYZ_RUN = (CX_RUN+CY_RUN+CZ_RUN)*2;    //V23
+				NXYZ_RUN = (CX_RUN+CY_RUN+CZ_RUN)*2;    //V26
+				//NXYZ_RUN = (CX_RUN+CY_RUN+CZ_RUN)*4;    //V27
+				//NXYZ_RUN = (CX_RUN+CY_RUN+CZ_RUN)*3/2;    //V21				
+				CICurrentThreshold = 1000 - (NS_SET + NXYZ_SET)/2; //2018-1-29->-40  //2018-2-24 不再减50
 				
-				CICurrentThreshold = 1000 - (NS_SET + NXYZ_SET)/2-40; //2018-1-29->-40
-				
-				if(CICurrentThreshold<=100)
-						CICurrentThreshold = 100;  //2018-1-27
-				else if(CICurrentThreshold>=1000)
-					CICurrentThreshold = 1000;
+				if(CICurrentThreshold<=600)
+						CICurrentThreshold = 600;  //2018-1-27 ->100,2018-02-24->600
+				else if(CICurrentThreshold>=920)
+					CICurrentThreshold = 920;    //2018-02-24->920
 			
 				WriteFlash(SA_FLASH_DATA_ADDRESS,SA_B[0]);
 				WriteFlash(CXA_FLASH_DATA_ADDRESS,CXA_B[0]);
