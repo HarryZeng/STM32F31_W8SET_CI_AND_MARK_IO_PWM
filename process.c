@@ -86,7 +86,7 @@ int32_t CX_RUN,CY_RUN,CZ_RUN,NS_RUN,NXYZ_RUN;
 int32_t CX,CY,CZ;
 
 int32_t SCI,SMARK;
-int32_t SCI_Min,SCI_Max;
+float SCI_Min,SCI_Max;
 int32_t DX_Data[8];
 int16_t DX_Max = 0,DX_Min=4095;
 uint8_t DX_Index = 0;
@@ -283,15 +283,15 @@ void CI_GetRegisterAState(void)
 			else
 				CZ_RUN = 	CZA_B[0] - CZ; 
 			
-			NS_RUN = NS_RUN/4;     //2018-1-28 /2  2018-1-29
-			
+			//NS_RUN = NS_RUN/4;     //2018-1-28 /2  2018-1-29
+			NS_RUN = 0;  						//2018-8-16  change NS_RUN to 0
 			//NXYZ_RUN = (CX_RUN+CY_RUN+CZ_RUN)*2; //2018-1-27  2018-1-29->3/2  ->*2
 			//NXYZ_RUN = (CX_RUN+CY_RUN+CZ_RUN)*2;    //V23
 			NXYZ_RUN = (CX_RUN+CY_RUN+CZ_RUN)*2;    //V26
 			//NXYZ_RUN = (CX_RUN+CY_RUN+CZ_RUN)*4;    //V27
 			//NXYZ_RUN = (CX_RUN+CY_RUN+CZ_RUN)*3/2;    //V21
 			/************SCI**********/
-			SCI = 1000 - (NS_RUN + NXYZ_RUN);  //2018-1-17  change
+			SCI = 1000 - (NS_RUN + NXYZ_RUN); 	 //2018-1-17  change   
 			if(SCI<=0)
 				SCI = 0;
 			else if(SCI>=1000)
@@ -327,9 +327,9 @@ void CI_GetRegisterAState(void)
 			}			
 
 			/***********RegisterA***********/
-			
-			SCI_Max = CICurrentThreshold + 0.25*DX; //2018-1-27
-			SCI_Min = CICurrentThreshold - DX - 50;    //2018-1-28 50  2018-1-29-80 2018-02-24-50
+			DX = 0;  													//2018-8-16  change DX to 0
+			SCI_Max = CICurrentThreshold ; 		//RegisterA从0跳变到1的范围值			//2018-06-05  去掉了DX
+			SCI_Min = CICurrentThreshold - 2.25*DX - 80;   //RegisterA从1跳变到0的范围值 	//2018-06-05->2.25DX-80
 			
 			if(SCI_Min<10)
 				 SCI_Min= 10;
@@ -339,22 +339,24 @@ void CI_GetRegisterAState(void)
 			{
 				RegisterA_0Counter = 0;
 				RegisterA_1Counter++;
-				if(RegisterA_1Counter>=4)
+				if(RegisterA_1Counter>=1)  //2018-6-5->1次    2018-8-16->1 times
 				{
 					RegisterA_1Counter = 0;
 					RegisterA = 1;
 				}
 			}
+			
 			else if(SCI <= SCI_Min)
 			{
 				RegisterA_1Counter = 0;
 				RegisterA_0Counter++;
-				if(RegisterA_0Counter>=4)
+				if(RegisterA_0Counter>=1) //2018-6-5->8次   2018-8-16->1 times
 				{
 					RegisterA_0Counter = 0;
 					RegisterA = 0;
 				}
 			}
+			
 			IWDG_ReloadCounter();//看门狗喂狗
 			SET_GOODBAD();
 			FB_Flag = Get_FB_Flag();
@@ -430,6 +432,7 @@ void MARK_PWM_OUT(PWM_Number PWM)
 				DX_Max = 0;
 				DX_Min = 4095;
 			}
+			DX = 0;  //2018-8-16 change to 0
 			/************DX2*************/
 			DX2_Data[DX2_Index] = SMARK;
 			if(DX2_Data[DX2_Index]>DX2_Max)
@@ -453,7 +456,7 @@ void MARK_PWM_OUT(PWM_Number PWM)
 				{
 						RegisterA_0Counter = 0;
 						RegisterA_1Counter++;
-						if(RegisterA_1Counter>=4)
+						if(RegisterA_1Counter>=1)//2018-8-16 change to 1
 						{
 							RegisterA_1Counter = 0;
 							RegisterA = 1;
@@ -463,7 +466,7 @@ void MARK_PWM_OUT(PWM_Number PWM)
 				{
 						RegisterA_1Counter = 0;
 						RegisterA_0Counter++;
-						if(RegisterA_0Counter>=4)
+						if(RegisterA_0Counter>=1)//2018-8-16 change to 1
 						{
 							RegisterA_0Counter = 0;
 							RegisterA = 0;
@@ -527,6 +530,7 @@ void MARK_PWM_OUT(PWM_Number PWM)
 				DX_Max = 0;
 				DX_Min = 4095;
 			}
+			DX = 0;  //2018-8-16 change to 0
 			/************DX2*************/
 			DX2_Data[DX2_Index] = SMARK;
 			if(DX2_Data[DX2_Index]>DX2_Max)
@@ -550,7 +554,7 @@ void MARK_PWM_OUT(PWM_Number PWM)
 				{
 						RegisterA_0Counter = 0;
 						RegisterA_1Counter++;
-						if(RegisterA_1Counter>=4)
+						if(RegisterA_1Counter>=1)  //2018-5-1=>1次
 						{
 							RegisterA_1Counter = 0;
 							RegisterA = 1;
@@ -560,7 +564,7 @@ void MARK_PWM_OUT(PWM_Number PWM)
 				{
 						RegisterA_1Counter = 0;
 						RegisterA_0Counter++;
-						if(RegisterA_0Counter>=4)
+						if(RegisterA_0Counter>=1) //2018-8-16 change to 1
 						{
 							RegisterA_0Counter = 0;
 							RegisterA = 0;
@@ -624,6 +628,7 @@ void MARK_PWM_OUT(PWM_Number PWM)
 				DX_Max = 0;
 				DX_Min = 4095;
 			}
+			DX = 0;  //2018-8-16 change to 0
 			/************DX2*************/
 			DX2_Data[DX2_Index] = SMARK;
 			if(DX2_Data[DX2_Index]>DX2_Max)
@@ -647,7 +652,7 @@ void MARK_PWM_OUT(PWM_Number PWM)
 				{
 						RegisterA_0Counter = 0;
 						RegisterA_1Counter++;
-						if(RegisterA_1Counter>=4)
+						if(RegisterA_1Counter>=1)//2018-8-16 change to 1
 						{
 							RegisterA_1Counter = 0;
 							RegisterA = 1;
@@ -657,7 +662,7 @@ void MARK_PWM_OUT(PWM_Number PWM)
 				{
 						RegisterA_1Counter = 0;
 						RegisterA_0Counter++;
-						if(RegisterA_0Counter>=4)
+						if(RegisterA_0Counter>=1)//2018-8-16 change to 1
 						{
 							RegisterA_0Counter = 0;
 							RegisterA = 0;
@@ -932,7 +937,7 @@ void CI_Mode_SelfLearning(void)
 					NS_SET = SA_B[0] - SA_B[1];
 				
 				NS_SET = NS_SET/4;  //2018-1-28  2018-1-29->/4
-				
+				NS_SET = 0;  						//2018-8-16  change NS_SET to 0
 				//NXYZ_SET = (NXSET+NYSET+NZSET)*2;  //2018-1-26   2018-1-29->3/2  ->*2
 				//NXYZ_RUN = (CX_RUN+CY_RUN+CZ_RUN)*2;    //V23
 				NXYZ_RUN = (CX_RUN+CY_RUN+CZ_RUN)*2;    //V26
@@ -951,7 +956,6 @@ void CI_Mode_SelfLearning(void)
 				WriteFlash(CZA_FLASH_DATA_ADDRESS,CZA_B[0]);
 				WriteFlash(CICurrentThreshold_FLASH_DATA_ADDRESS,CICurrentThreshold);
 								
-			
 			}
 			KeyTime = 0; //清楚按键标记
 			scan_key();

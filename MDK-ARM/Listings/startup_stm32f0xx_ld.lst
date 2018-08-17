@@ -384,18 +384,17 @@ ARM Macro Assembler    Page 6
               00000000 
 Command Line: --debug --xref --diag_suppress=9931 --cpu=Cortex-M0 --apcs=interw
 ork --depend=.\objects\startup_stm32f0xx_ld.d -o.\objects\startup_stm32f0xx_ld.
-o -ID:\ZHR\PersonalData\Project\code\Code\STM32F31_W8SET_CI_AND_MARK_IO_PWM\MDK
--ARM\RTE -Id:\Keil_v5\ARM\PACK\Keil\STM32F0xx_DFP\1.5.0\Device\Include -Id:\Kei
-l_v5\ARM\CMSIS\Include --predefine="__MICROLIB SETA 1" --predefine="__UVISION_V
-ERSION SETA 520" --predefine="STM32F031x6 SETA 1" --list=.\listings\startup_stm
+o -I.\RTE\_Target_1 -Id:\Keil_v5\ARM\PACK\Keil\STM32F0xx_DFP\2.0.0\Drivers\CMSI
+S\Device\ST\STM32F0xx\Include -Id:\Keil_v5\ARM\CMSIS\Include --predefine="__MIC
+ROLIB SETA 1" --predefine="__UVISION_VERSION SETA 524" --predefine="STM32F031x6
+ SETA 1" --list=.\listings\startup_stm32f0xx_ld.lst ..\Libraries\CMSIS\Device\S
 
 
 
 ARM Macro Assembler    Page 7 
 
 
-32f0xx_ld.lst ..\Libraries\CMSIS\Device\ST\STM32F0xx\Source\Templates\arm\start
-up_stm32f0xx_ld.s
+T\STM32F0xx\Source\Templates\arm\startup_stm32f0xx_ld.s
 
 
 

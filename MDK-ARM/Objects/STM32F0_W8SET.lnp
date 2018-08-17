@@ -29,6 +29,6 @@
 ".\objects\system_stm32f0xx.o"
 ".\objects\startup_stm32f0xx_ld.o"
 --library_type=microlib --strict --scatter ".\Objects\STM32F0_W8SET.sct"
---summary_stderr --info summarysizes --map --xref --callgraph --symbols
+--summary_stderr --info summarysizes --map --load_addr_map_info --xref --callgraph --symbols
 --info sizes --info totals --info unused --info veneers
 --list ".\Listings\STM32F0_W8SET.map" -o .\Objects\STM32F0_W8SET.axf
